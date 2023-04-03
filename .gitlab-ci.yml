@@ -1,0 +1,89 @@
+stages:
+  - test
+  - build
+  - deploy
+      
+
+variables:
+  APP_NAME: pybbat
+  BUILD_BIN: $APP_NAME.shiv
+
+
+cache:
+  paths:
+    - .cache/pip
+    - venv
+
+before_script:
+  - source ~gitlab-runner/.bashrc
+  - PYTHON_VERSION=`cat .pypath 2> /dev/null || echo "python3"`
+
+# if pytest succeeds or no tests are run, continue to deploy
+pytest:
+  only:
+    - tags
+  stage: test
+  variables:
+    DO_TESTS: 1
+  script:
+    - printf -v BOILER_TEST 'def test_dummy():\n    assert True'
+    - printf -v TEST_DIR_FILES ''
+    - >
+      if [ -d "tests" ]; then
+        TEST_DIR_FILES=$( ls tests )
+      fi
+    - >
+      if [ "$TEST_DIR_FILES" == "test_sample.py" ]; then
+        SAMPLE_CONTENT=$(<tests/test_sample.py)
+        if [ "$SAMPLE_CONTENT" == "$BOILER_TEST" ]; then
+          DO_TESTS=0
+        fi
+      elif [ "$TEST_DIR_FILES" == "" ]; then
+        DO_TESTS=0
+      fi
+    - >
+      if [ $DO_TESTS -eq 1 ]; then
+        $PYTHON_VERSION -m venv --system-site-packages venv
+        source venv/bin/activate
+        $PYTHON_VERSION -m pip install -r requirements/production.txt
+        $PYTHON_VERSION -m pytest tests ; ret=$? ; [ $ret -eq 0 ] || [ $ret -eq 5 ]
+      fi
+
+shiv:
+  only:
+    - tags
+  stage: build
+  script:
+    - $PYTHON_VERSION -m venv --system-site-packages venv
+    - source venv/bin/activate
+    - pip install shiv
+    - shiv -c $APP_NAME -o $BUILD_BIN --compile-pyc -p "/ride/release/scripts/shiv-launch $PYTHON_VERSION" --compressed -r requirements/production.txt .
+  artifacts:
+    paths:
+    - $BUILD_BIN
+    expire_in: 1 week
+
+release:
+  only:
+    - tags
+  stage: deploy
+  variables:
+    REL_ROOT: /ride/release/python/apps
+    SCRIPTS_ROOT: /ride/release/scripts
+    REL_BIN: $REL_ROOT/$APP_NAME
+    FALLBACK_BIN: $REL_ROOT/fallback/$APP_NAME
+  environment:
+    name: release
+  script:
+    - > 
+      if [ -f "$REL_BIN" ]; then
+        echo "Creating fallback..."
+        mv "$REL_BIN" "$FALLBACK_BIN-$(date +%F_%R)"
+        ln -sf "$FALLBACK_BIN-$(date +%F_%R)" "$SCRIPTS_ROOT/fallback/$APP_NAME-$(date +%F_%R)"
+        echo "Fallback created!"
+      fi
+    - echo "Creating release..."
+    - rm -rf $REL_BIN
+    - cp -rf $BUILD_BIN $REL_BIN
+    - rm -rf $SCRIPTS_ROOT/$APP_NAME
+    - ln -sf $REL_BIN $SCRIPTS_ROOT/$APP_NAME

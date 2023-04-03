@@ -1,0 +1,19 @@
+{
+    // Use Intellisense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run pybbat",
+            "type": "python",
+            "request": "launch",
+            "module": "pybbat",
+            // Uncomment and modify the lines below if needed
+            // "args": [
+            //     "--optional_flag1",
+            //     "optional_arg1"
+            // ],
+        }
+    ]
+}

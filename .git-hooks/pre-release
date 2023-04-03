@@ -1,0 +1,23 @@
+#!/bin/bash
+PIP="venv/bin/pip"
+if [ -x "$PIP" ]; then
+    $PIP list --local --outdated --no-index 2> /dev/null
+fi
+
+# The developer could be working on their code in the development environment,
+# and not realize that they haven't made the changes in the production
+# environment, so as a small check we allow a release to happen only if the
+# production environment is currently active
+
+result=`venv/bin/python -m piptools sync -n requirements/production.txt`
+
+if [ "$result" != "Everything up-to-date" ]
+then
+    echo "You can release from the production environment only!"
+    echo "Switch to production using 'cadpip switch p' and make"
+    echo "sure your code still works, then release when ready."
+    false
+else
+    true
+fi
+
