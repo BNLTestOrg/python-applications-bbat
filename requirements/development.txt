@@ -6,6 +6,10 @@
 #
 --find-links /ride/release/python/packages/
 
+args==0.1.0
+    # via clint
+blt==0.2.1
+    # via -r requirements/development.in
 cad-error==1.0.0
     # via
     #   -r requirements/production.txt
@@ -43,6 +47,8 @@ cffi==1.15.1
     #   -r requirements/production.txt
     #   cad-ui
     #   xcffib
+clint==0.3.3
+    # via blt
 dataclassy==0.11.1
     # via
     #   -r requirements/production.txt
@@ -72,6 +78,8 @@ markupsafe==2.1.2
     #   -r requirements/production.txt
     #   dbconn
     #   jinja2
+mock==1.0.1
+    # via blt
 multinet==2.0.5
     # via
     #   -r requirements/production.txt
@@ -102,6 +110,8 @@ protobuf==3.20.3
     #   -r requirements/production.txt
     #   dbconn
     #   mysql-connector-python
+py==1.11.0
+    # via pytest
 pycparser==2.21
     # via
     #   -r requirements/production.txt
@@ -125,6 +135,8 @@ pyqtgraph==0.13.2
     # via
     #   -r requirements/production.txt
     #   cad-ui
+pytest==2.5.1
+    # via blt
 six==1.16.0
     # via
     #   -r requirements/production.txt
