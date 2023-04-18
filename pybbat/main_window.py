@@ -255,7 +255,7 @@ class SecondRF(QWidget):
         self.n = 2
         self.Vrf = 0
         self.Vn = 0
-        self.vrf = Vrf *
+        #        self.vrf = Vrf *
         self.vn = 0
         self.theta = 0
         self.phis_1 = 0
@@ -428,7 +428,7 @@ class SecondRF(QWidget):
         textLayout.addWidget(dp_mevc, 2, 0, 1, 1)
         textLayout.addWidget(dpmevc_val, 2, 1, 1, 1)
         textLayout.addWidget(dp_ps, 2, 2, 1, 1)
-        textLayout.addWidget(dpps_val, 2, 3, 1, 1) 
+        textLayout.addWidget(dpps_val, 2, 3, 1, 1)
 
         dr_r = QLabel("dR/R(10^-3):")
         drr_val = QLabel("something")
