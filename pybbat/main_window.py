@@ -9,7 +9,7 @@ from qtpy.QtWidgets import (
 )
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
-from cad_ui.general import CADMainWindow
+from cad_ui.general import CADMainWindow, PrintMenu
 from cad_ui.plotting import CadPlot
 import numpy as np
 import blt
@@ -95,6 +95,10 @@ class MoreResults(QWidget):
         nsLine = QLineEdit("35.714285")
         layout.addWidget(nslen, 10, 0, 1, 1)
         layout.addWidget(nsLine, 10, 1, 1, 1)
+
+        ok = QPushButton("OK")
+        ok.clicked.connect(self.close)
+        layout.addWidget(ok, 11, 0, 1, 2)
 
         self.setLayout(layout)
 
@@ -251,7 +255,7 @@ class SecondRF(QWidget):
         self.n = 2
         self.Vrf = 0
         self.Vn = 0
-        self.vrf = 0
+        self.vrf = Vrf *
         self.vn = 0
         self.theta = 0
         self.phis_1 = 0
@@ -273,9 +277,13 @@ class SecondRF(QWidget):
 
         self.setWindowTitle("Dr. BBat")
         quit = QPushButton("Quit")
+        quit.clicked.connect(self.close)
         redraw = QPushButton("Redraw")
         vv = QPushButton("V")
+        vv.clicked.connect(self.vplot)
         printButton = QPushButton("Print")
+        pm = PrintMenu(self)
+        printButton.setMenu(pm)
         help = QPushButton("Help")
 
         layout = QGridLayout()
@@ -401,30 +409,77 @@ class SecondRF(QWidget):
         phasens = QLabel("phase(ns):")
         phasens_value = QLabel("2.45909358")
         textLayout.addWidget(phase, 0, 0, 1, 1)
-        textLayout.addWidget(phase_value, 0, 1, 1, 2)
-        textLayout.addWidget(phasens, 0, 3, 1, 1)
-        textLayout.addWidget(phasens_value, 0, 4, 1, 2)
+        textLayout.addWidget(phase_value, 0, 1, 1, 1)
+        textLayout.addWidget(phasens, 0, 2, 1, 1)
+        textLayout.addWidget(phasens_value, 0, 3, 1, 1)
         de_mev = QLabel("dE(MeV):")
         demev_line = QLabel("something")
         de_es = QLabel("dE/Es(10^-3):")
         dees_line = QLabel("something")
         textLayout.addWidget(de_mev, 1, 0, 1, 1)
         textLayout.addWidget(demev_line, 1, 1, 1, 1)
-        textLayout.addWidget(de_es, 1, 3, 1, 1)
-        textLayout.addWidget(dees_line, 1, 4, 1, 1)
+        textLayout.addWidget(de_es, 1, 2, 1, 1)
+        textLayout.addWidget(dees_line, 1, 3, 1, 1)
+
+        dp_mevc = QLabel("dp(MeV/c):")
+        dpmevc_val = QLabel("something")
+        dp_ps = QLabel("dP/Ps(10^-3)")
+        dpps_val = QLabel("Something")
+        textLayout.addWidget(dp_mevc, 2, 0, 1, 1)
+        textLayout.addWidget(dpmevc_val, 2, 1, 1, 1)
+        textLayout.addWidget(dp_ps, 2, 2, 1, 1)
+        textLayout.addWidget(dpps_val, 2, 3, 1, 1) 
+
+        dr_r = QLabel("dR/R(10^-3):")
+        drr_val = QLabel("something")
+        df_f = QLabel("df/f(10^3):")
+        dff_val = QLabel("something")
+        textLayout.addWidget(dr_r, 3, 0, 1, 1)
+        textLayout.addWidget(drr_val, 3, 1, 1, 1)
+        textLayout.addWidget(df_f, 3, 2, 1, 1)
+        textLayout.addWidget(dff_val, 3, 3, 1, 1)
+
+        fnu = QLabel("fnu(Hz):")
+        fnu_val = QLabel(" ")
+        textLayout.addWidget(fnu, 4, 0, 1, 1)
+        textLayout.addWidget(fnu_val, 4, 1, 1, 1)
+
+        abkt = QLabel("Abkt(eVs/u):")
+        abkt_val = QLabel(" ")
+        abun = QLabel("Abun(eVs/u):")
+        abun_val = QLabel(" ")
+        textLayout.addWidget(abkt, 5, 0, 1, 1)
+        textLayout.addWidget(abkt_val, 5, 1, 1, 1)
+        textLayout.addWidget(abun, 6, 0, 1, 1)
+        textLayout.addWidget(abun_val, 6, 1, 1, 1)
 
         textWid.setLayout(textLayout)
         layout.addWidget(textWid, 20, 5, 4, 4)
 
         self.setLayout(layout)
 
+    def vplot(self):
+        self.v_wid = QWidget()
+        self.v_wid.setWindowTitle("Vrf form")
+        self.v_layout = QGridLayout()
+        self.v_plot = CadPlot()
+        self.v_layout.addWidget(self.v_plot, 0, 0, 6, 10)
+        self.v_ok = QPushButton("OK")
+        self.v_ok.clicked.connect(self.v_wid.close)
+        self.v_layout.addWidget(self.v_ok, 6, 0, 1, 10)
+        self.v_wid.setLayout(self.v_layout)
+        self.v_wid.show()
+
 
 class ButtonPanel(QWidget):
-    def __init__(self) -> None:
+    def __init__(self, mainwindow) -> None:
         super().__init__()
         quit = QPushButton("Quit")
+        quit.clicked.connect(mainwindow.close)
         refresh = QPushButton("Refresh")
         printButton = QPushButton("Print")
+        pm = PrintMenu(self)
+        printButton.setMenu(pm)
         config = QPushButton("Config")
         self.secondRf = QPushButton("Second RF")
         self.srf = None
@@ -450,7 +505,7 @@ class Window(CADMainWindow):
         self.w = None
         self.setWindowTitle("bbat")
         control = ControlPanel()
-        buttons = ButtonPanel()
+        buttons = ButtonPanel(self)
         layout = QGridLayout()
         layout.addWidget(control, 0, 0, 15, 3)
         more = QPushButton("More Results")
