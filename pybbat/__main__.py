@@ -2,7 +2,7 @@
 # https://www.python.org/dev/peps/pep-0328/#rationale-for-relative-imports
 import sys
 from qtpy.QtWidgets import QApplication
-from .main_window import Window
+from .main_window import BBat
 from cad_utils.logging import enable_logging
 
 
@@ -11,7 +11,7 @@ def main():
     enable_logging()
     # TODO: Setup entrypoint code
     app = QApplication(sys.argv)
-    window = Window()
+    window = BBat()
     window.show()
     app.exec_()
 
