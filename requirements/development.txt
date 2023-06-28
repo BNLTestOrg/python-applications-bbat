@@ -6,10 +6,20 @@
 #
 --find-links /ride/release/python/packages/
 
+anyio==3.7.0
+    # via
+    #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
+    #   starlette
 args==0.1.0
     # via clint
 blt==0.2.1
     # via -r requirements/development.in
+cad-env==1.0.1
+    # via
+    #   -r requirements/production.txt
+    #   cad-io
 cad-error==1.0.0
     # via
     #   -r requirements/production.txt
@@ -18,7 +28,7 @@ cad-error==1.0.0
     #   cad-utils-io
     #   multinet
     #   pygpm
-cad-io==5.0.7
+cad-io==5.1.2
     # via
     #   -r requirements/production.txt
     #   cad-ui
@@ -30,9 +40,13 @@ cad-parsers==1.0.3
     #   -r requirements/production.txt
     #   cad-ui
     #   cad-utils
-cad-ui==1.8.2
+cad-sdds==0.10.1
+    # via
+    #   -r requirements/production.txt
+    #   cad-ui
+cad-ui==2.0.3
     # via -r requirements/production.txt
-cad-utils==2.1.0
+cad-utils==2.2.1
     # via
     #   -r requirements/development.in
     #   -r requirements/production.txt
@@ -47,25 +61,53 @@ cffi==1.15.1
     #   -r requirements/production.txt
     #   cad-ui
     #   xcffib
+click==8.1.3
+    # via
+    #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
+    #   uvicorn
 clint==0.3.3
     # via blt
-dataclassy==0.11.1
+dataclassy==1.0.1
     # via
     #   -r requirements/production.txt
     #   cad-ui
 dbconn==1.3.1
     # via
     #   -r requirements/production.txt
+    #   cad-sdds
     #   cad-ui
     #   cad-utils
+exceptiongroup==1.1.1
+    # via
+    #   -r requirements/production.txt
+    #   anyio
+fastapi==0.98.0
+    # via
+    #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
 greenlet==2.0.2
     # via
     #   -r requirements/production.txt
     #   dbconn
     #   sqlalchemy
+h11==0.14.0
+    # via
+    #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
+    #   uvicorn
+idna==3.4
+    # via
+    #   -r requirements/production.txt
+    #   anyio
 jinja2==3.1.2
     # via
     #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
     #   dbconn
     #   mysqlx
 lark==1.1.5
@@ -73,9 +115,11 @@ lark==1.1.5
     #   -r requirements/production.txt
     #   cad-ui
     #   pygpm
-markupsafe==2.1.2
+markupsafe==2.1.3
     # via
     #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
     #   dbconn
     #   jinja2
 mock==1.0.1
@@ -86,16 +130,20 @@ multinet==2.0.5
     #   cad-ui
     #   cad-utils-io
     #   pygpm
-mysql-connector-python==8.0.32
+mysql-connector-python==8.0.33
     # via
     #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
     #   dbconn
     #   mysqlx
-mysqlx==1.1.4
+mysqlx==1.3.1
     # via
     #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
     #   dbconn
-numpy==1.24.2
+numpy==1.24.4
     # via
     #   -r requirements/production.txt
     #   cad-ui
@@ -105,9 +153,16 @@ odbcinst==1.0.1
     #   -r requirements/production.txt
     #   dbconn
     #   sqlalchemy-sybase
+orjson==3.9.1
+    # via
+    #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
 protobuf==3.20.3
     # via
     #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
     #   dbconn
     #   mysql-connector-python
 py==1.11.0
@@ -116,13 +171,20 @@ pycparser==2.21
     # via
     #   -r requirements/production.txt
     #   cffi
-pygpm==0.3.0
+pydantic==1.10.9
+    # via
+    #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
+    #   fastapi
+pygpm==0.3.2
     # via
     #   -r requirements/production.txt
     #   cad-ui
-pyodbc==4.0.35
+pyodbc==4.0.39
     # via
     #   -r requirements/production.txt
+    #   cad-sdds
     #   cad-ui
     #   cad-utils
     #   dbconn
@@ -131,18 +193,19 @@ pyqt5-stubs==5.15.6.0
     # via
     #   -r requirements/production.txt
     #   cad-ui
-pyqtgraph==0.13.2
+pyqtgraph==0.13.3
     # via
     #   -r requirements/production.txt
     #   cad-ui
 pytest==2.5.1
     # via blt
-six==1.16.0
+sniffio==1.3.0
     # via
     #   -r requirements/production.txt
+    #   anyio
+    #   cad-sdds
     #   cad-ui
-    #   xcffib
-sqlalchemy==2.0.8
+sqlalchemy==2.0.17
     # via
     #   -r requirements/production.txt
     #   dbconn
@@ -151,12 +214,27 @@ sqlalchemy-sybase==2.0.0
     # via
     #   -r requirements/production.txt
     #   dbconn
-typing-extensions==4.5.0
+starlette==0.27.0
     # via
     #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
+    #   fastapi
+typing-extensions==4.6.3
+    # via
+    #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
     #   dbconn
+    #   pydantic
     #   sqlalchemy
-xcffib==0.12.1
+    #   starlette
+uvicorn==0.22.0
+    # via
+    #   -r requirements/production.txt
+    #   cad-sdds
+    #   cad-ui
+xcffib==1.4.0
     # via
     #   -r requirements/production.txt
     #   cad-ui
