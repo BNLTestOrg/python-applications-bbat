@@ -19,3 +19,4 @@
 
 cad-utils
 cad-ui
+numpy<1.25.0
