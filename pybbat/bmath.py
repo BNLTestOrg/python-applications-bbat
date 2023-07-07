@@ -1,5 +1,4 @@
 import math
-import subprocess
 
 
 class bmath:
@@ -55,7 +54,7 @@ class bmath:
 
     machineParameters = {
         "AGS": ags_values,
-        "booster": booster_values,
+        "Booster": booster_values,
         "RHIC": rhic_values,
     }
 
@@ -183,9 +182,6 @@ class bmath:
     lotheta = -180
     uptheta = 180
 
-    # def dpos(w):
-    #    w.geometry("+1300+0")
-
     def abkt_s(a, b):
         return 16.0 * math.sqrt(abs(b * 1.0 / a))
 
@@ -197,28 +193,3 @@ class bmath:
 
     def g2XLabels(graph, x):
         return str(int(x)) + "\u00B0"
-
-        # return str(int(x * 180 / 3.14159265358979323846)) + "\u00B0"
-
-
-##########
-# ab.tcl
-##########
-# def configureGraph(interp, graph):
-#    subprocess.Popen(["/usr/local/bin/blt_wish", "-name", "GraphConfig", "-f", "./grconf.tcl", interp, graph])
-
-# def framentry(name, var, text):
-# frame = tk.Frame(name, bd= "1m")
-# label = tk.Label(frame, text= text)
-# entry = tk.Entry(frame, width= 9, relief= "sunken", bd= 2, textvariable= var)
-# label.pack(side= "left")
-# entry.pack(side= "right")
-# frame.pack()
-
-# def framelabel(name, var, text):
-# frame = tk.Frame(name, bd= "1m")
-# title = tk.Label(frame, text= text)
-# label = tk.Label(frame, bd= 2, textvariable= var)
-# title.pack(side= "left")
-# label.pack(side= "right")
-# frame.pack()

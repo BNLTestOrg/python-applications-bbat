@@ -1,3 +1,4 @@
+from mimetypes import init
 from qtpy.QtWidgets import (
     QLabel,
     QWidget,
@@ -13,8 +14,8 @@ from qtpy.QtGui import QFont
 from cad_ui.general import CADMainWindow, PrintMenu
 from cad_ui.plotting import CadPlot
 import numpy as np
-import os
 import math
+import pyqtgraph as pg
 
 from pybbat.btools import bTools
 from .bmath import bmath
@@ -26,31 +27,40 @@ class BBat(CADMainWindow):
         self.machine = "RHIC"
         self.n = 2
         self.Vrf = 100
-        self.Vrf_2rf = 0
         self.Vrf_k = self.Vrf * bmath.kilo
+        self.Vrf_i = 0
         self.Vn = 100
         self.Vn_k = self.Vn * bmath.kilo
         self.theta = 86
         self.phis1 = 10
         self.phis_1 = 0
+        self.df_f = 0
         self.vzerox = [-190, 190]
         self.vzeroy = [0, 0]
         self.bdot = (8.7 * 201 * 13.7) / 1000
         self._g2rfsep = []
+        self.sep_x = {}
+        self.sep_y = {}
         self.g2rflist = []
         self.gammas_1 = 0
-        # these are undefined
+        self.betas_1 = 1
+        # ****** these are undefined IDK ABOUT THIS ******
         # self._g2rflist = [self.RFV2, self.RFU2, self.vzero, self.vinf, self.phis1, self.hline]
         # v1max is in para.py
         self.fnu = 116.764913687
+        self.Tnu = 0
+        self.dfnu = 0
         self.e = 79
         self.h = 360
-        self.A_1 = 0
-        self.B_1 = 0
+        self.A_1 = 1
+        self.B_1 = 1
         self.B1 = self.e / (2 * bmath.pi * self.h)  # B1 is not B_1, B1= Vrf*B_1;
         self.sop = 0
+        self.sop_x = 0
+        self.A2bkt = 0
         self.A2Bun = 0
         self.fnu2rf = 0
+        self.dR_R = 0
         self.W2Max = 3
         self.W2Min = -3
         self.U2Max = 200
@@ -70,6 +80,7 @@ class BBat(CADMainWindow):
         self.hline_y = []
 
         self.dE = 0
+        # self.frf_1 = 28.0
         self.frf_1 = 0
         self.dE_Es = 0
         self.Es = 1
@@ -78,19 +89,21 @@ class BBat(CADMainWindow):
         # self.fnu1 = 0
         self.dP = 0
         self.dP_Ps = 0
-        self.betas1 = 0
+        self.betas1 = 1
         self.lotheta = -180 / self.n
         self.uptheta = 180 / self.n
         self.deltav = self.Vn / (self.Vrf + 1e-20)
-        self.phi2s = self.phis1 + self.theta
+        self.phi2s = self.phis_1 + self.theta
 
         # these are all commented out
         # self._phibun1 = 0
         # self._phibun2 = 0
         # self._etas1 = 0
         # pi and radeg are in the para
-        self.BUNlt = 0
+        self.BUNlt = 2
         self.BUNlr = 0
+        self.BUNe = 0
+        self.BUNld = 0
         self.species = "au"
         self.fnu2rf = 0
         self.A = 0
@@ -98,19 +111,22 @@ class BBat(CADMainWindow):
         self.uu = 10
 
         self.w = None
-        self.Bf = 0.30662093657
-        self.frf = 28.0
+        self.Bf = 0
+        self.frf = 28
         self.gammas = 9.68008184872
         self.pc = 8.96644213239
         self.km = 8083.41302244
         self.kg = 8.08341302244
-        # self.Bdot = 0.0
+        self.Bdot = 0.0
         self.h = 360
         self.Wmax = 2
         self.Wmin = -2
         self.phase_t1 = 0
+        self.etas_1 = 0
 
         self.BUN = "lt"
+
+        self.machineValues = bmath.machineParameters[self.machine]
 
         self.rf_dict = {
             "RF Frequency (MHz)": self.frf,
@@ -144,6 +160,22 @@ class BBat(CADMainWindow):
             "others": 0,
         }
 
+        self.v_wid = QWidget()
+        self.v_wid.setWindowTitle("Vrf form")
+        self.v_layout = QGridLayout()
+        self.v_plot = CadPlot()
+        self.vplot_vb = self.v_plot.getViewBox()
+        self.vplot_vb.setXRange(-370, 370)
+        # set the tick marks at 45 if possible
+        self.v_layout.addWidget(self.v_plot, 0, 0, 6, 10)
+        self.v_ok = QPushButton("OK")
+        self.v_ok.clicked.connect(self.v_wid.close)
+        self.v_layout.addWidget(self.v_ok, 6, 0, 1, 10)
+        self.v_wid.setLayout(self.v_layout)
+
+        self.vzerox = [-370, 370]
+        self.vzeroy = [0, 0]
+
         # UI components
         self.setWindowTitle("bbat")
         control = self.ControlPanel()
@@ -151,7 +183,7 @@ class BBat(CADMainWindow):
         layout = QGridLayout()
         layout.addWidget(control, 0, 0, 17, 3)
         more = QPushButton("More Results")
-        more.clicked.connect(self.show_new_window)
+        more.clicked.connect(self.MoreResults)
         layout.addWidget(more, 17, 1, 1, 1)
         layout.addWidget(buttons, 0, 3, 1, 1)
 
@@ -163,6 +195,11 @@ class BBat(CADMainWindow):
         self.plot.addDataset(
             "Random", np.arange(0, 10, 1), np.arange(0, 10, 1), color="b"
         )
+        self.hline = pg.InfiniteLine(angle=0, movable=False)
+        self.vline = pg.InfiniteLine(angle=90, movable=False)
+        self.plot.plotItem.addItem(self.hline)
+        self.plot.plotItem.addItem(self.vline)
+        self.plot.scene().sigMouseMoved.connect(self.mainMouseMoved)
         layout.addWidget(self.plot, 1, 3, 10, 1)
 
         textbox = self.textBox()
@@ -194,8 +231,27 @@ class BBat(CADMainWindow):
         self.nsLine = QLineEdit("35.714285")
 
         self.second_g2rf = CadPlot()
+        self.second_g2rf.plotItem.vb.setXRange(-370, 370)
+        self.second_g2rf.plotItem.vb.setYRange(-3, 3)
+        self.second_g2rf.plotItem.vb.disableAutoRange()
+
+        for i in range(0, 100):
+            self.sep_x["sep_" + str(i)] = []
+            self.sep_y["sep_" + str(i)] = []
+
+    def mainMouseMoved(self, event):
+        x = event.x()
+        y = event.y()
+        mousePt = self.plot.plotItem.vb.mapSceneToView(event)
+        self.vline.setPos(mousePt.x())
+        self.hline.setPos(mousePt.y())
+        self.bltCoor(mousePt.x(), mousePt.y())
 
     def secondRFWindow(self):
+        self.Vn = 100
+        self.Vn_k = self.Vn * bmath.kilo
+        self.k = 0
+        self.deltav = self.Vn / (self.Vrf + 1e-20)
         self.srfWid = QWidget()
         self.srfWid.setWindowTitle("Dr. BBat")
         quit = QPushButton("Close")
@@ -208,6 +264,7 @@ class BBat(CADMainWindow):
         pm = PrintMenu(self)
         printButton.setMenu(pm)
         help = QPushButton("Help")
+        help.clicked.connect(self.rf2Help)
 
         layout = QGridLayout()
         layout.addWidget(quit, 0, 0, 1, 1)
@@ -223,7 +280,7 @@ class BBat(CADMainWindow):
         layout.addWidget(title, 1, 2, 1, 3)
 
         vrf = QLabel("Vrf")
-        self.vrf_line = QLineEdit("0")
+        self.vrf_line = QLineEdit("100")
         self.vrf_line.returnPressed.connect(self.setVrfValue)
         layout.addWidget(vrf, 2, 0, 1, 2)
         layout.addWidget(self.vrf_line, 2, 2, 1, 3)
@@ -274,7 +331,7 @@ class BBat(CADMainWindow):
         self.V_1spinbox = QSpinBox()
         self.V_1spinbox.setMinimum(0)
         self.V_1spinbox.setMaximum(100)
-        self.V_1spinbox.setValue(0)
+        self.V_1spinbox.setValue(100)
         self.V_1spinbox.valueChanged.connect(self.setVrfValueSB)
         V1_l = QLabel("V_1")
         layout.addWidget(V1_l, 10, 0, 1, 1)
@@ -324,13 +381,19 @@ class BBat(CADMainWindow):
         layout.addWidget(U_line, 15, 2, 1, 1)
 
         refresh = QPushButton("refresh")
+        refresh.clicked.connect(self.init_sep)
+        refresh.clicked.connect(self.draw2rfButtonCommand)
         layout.addWidget(refresh, 16, 1, 1, 3)
 
         self.second_g2rf.plotItem.setLabel("bottom", "RF Phase (deg)")
         self.second_g2rf.plotItem.setLabel("left", "W")
-        self.sg2rf_vb = self.second_g2rf.getViewBox()
-        self.sg2rf_vb.setXRange(-370, 370)
-        self.sg2rf_vb.setYRange(self.W2Min, self.W2Max)
+
+        self.g2rf_hline = pg.InfiniteLine(angle=0, movable=False)
+        self.g2rf_vline = pg.InfiniteLine(angle=90, movable=False)
+        self.second_g2rf.plotItem.addItem(self.g2rf_hline)
+        self.second_g2rf.plotItem.addItem(self.g2rf_vline)
+        self.second_g2rf.scene().sigMouseMoved.connect(self.mouseMoved)
+
         # i need to figure out the right thing to do for the y2 axis
         # second_g2rf.y2axis.configure(rotate=0.0, min=U2min, max=U2max)
         layout.addWidget(self.second_g2rf, 0, 5, 20, 4)
@@ -339,60 +402,115 @@ class BBat(CADMainWindow):
         textLayout = QGridLayout()
 
         phase = QLabel("phase(deg):")
-        phase_value = QLabel("54.1689284")
+        self.phase_value2 = QLabel(str(self.sop_x))
         phasens = QLabel("phase(ns):")
-        phasens_value = QLabel("2.45909358")
+        self.phasens_value2 = QLabel(str(self.phase_t1))
         textLayout.addWidget(phase, 0, 0, 1, 1)
-        textLayout.addWidget(phase_value, 0, 1, 1, 1)
+        textLayout.addWidget(self.phase_value2, 0, 1, 1, 1)
         textLayout.addWidget(phasens, 0, 2, 1, 1)
-        textLayout.addWidget(phasens_value, 0, 3, 1, 1)
+        textLayout.addWidget(self.phasens_value2, 0, 3, 1, 1)
         de_mev = QLabel("dE(MeV):")
-        demev_line = QLabel("something")
+        self.demev_line2 = QLabel(str(self.dE))
         de_es = QLabel("dE/Es(10^-3):")
-        dees_line = QLabel("something")
+        self.dees_line2 = QLabel(str(self.dE_Es))
         textLayout.addWidget(de_mev, 1, 0, 1, 1)
-        textLayout.addWidget(demev_line, 1, 1, 1, 1)
+        textLayout.addWidget(self.demev_line2, 1, 1, 1, 1)
         textLayout.addWidget(de_es, 1, 2, 1, 1)
-        textLayout.addWidget(dees_line, 1, 3, 1, 1)
+        textLayout.addWidget(self.dees_line2, 1, 3, 1, 1)
 
         dp_mevc = QLabel("dp(MeV/c):")
-        dpmevc_val = QLabel("something")
+        self.dpmevc_val2 = QLabel(str(self.dP))
         dp_ps = QLabel("dP/Ps(10^-3)")
-        dpps_val = QLabel("Something")
+        self.dpps_val2 = QLabel(str(self.dP_Ps))
         textLayout.addWidget(dp_mevc, 2, 0, 1, 1)
-        textLayout.addWidget(dpmevc_val, 2, 1, 1, 1)
+        textLayout.addWidget(self.dpmevc_val2, 2, 1, 1, 1)
         textLayout.addWidget(dp_ps, 2, 2, 1, 1)
-        textLayout.addWidget(dpps_val, 2, 3, 1, 1)
+        textLayout.addWidget(self.dpps_val2, 2, 3, 1, 1)
+        self.betas_1 = 1
 
         dr_r = QLabel("dR/R(10^-3):")
-        drr_val = QLabel("something")
+        self.drr_val2 = QLabel(str(self.dR_R))
         df_f = QLabel("df/f(10^3):")
-        dff_val = QLabel("something")
+        self.dff_val2 = QLabel(str(self.df_f))
         textLayout.addWidget(dr_r, 3, 0, 1, 1)
-        textLayout.addWidget(drr_val, 3, 1, 1, 1)
+        textLayout.addWidget(self.drr_val2, 3, 1, 1, 1)
         textLayout.addWidget(df_f, 3, 2, 1, 1)
-        textLayout.addWidget(dff_val, 3, 3, 1, 1)
+        textLayout.addWidget(self.dff_val2, 3, 3, 1, 1)
+        self.dR_Ps = 0
+        self.betas_1 = 1
 
         fnu = QLabel("fnu(Hz):")
-        fnu_val = QLabel(" ")
+        # self.fnu_val2 = QLabel(str(self.fnu2rf))
         textLayout.addWidget(fnu, 4, 0, 1, 1)
-        textLayout.addWidget(fnu_val, 4, 1, 1, 1)
+        # textLayout.addWidget(self.fnu_val2, 4, 1, 1, 1)
 
         abkt = QLabel("Abkt(eVs/u):")
-        abkt_val = QLabel(" ")
+        # self.abkt_val2 = QLabel(str(self.A2bkt))
         abun = QLabel("Abun(eVs/u):")
-        abun_val = QLabel(" ")
+        # self.abun_val2 = QLabel(str(self.A2Bun))
         textLayout.addWidget(abkt, 5, 0, 1, 1)
-        textLayout.addWidget(abkt_val, 5, 1, 1, 1)
+        # textLayout.addWidget(self.abkt_val2, 5, 1, 1, 1)
         textLayout.addWidget(abun, 6, 0, 1, 1)
-        textLayout.addWidget(abun_val, 6, 1, 1, 1)
+        # textLayout.addWidget(self.abun_val2, 6, 1, 1, 1)
 
         textWid.setLayout(textLayout)
         layout.addWidget(textWid, 20, 5, 4, 4)
 
+        self.draw2rfButtonCommand()
+
         self.srfWid.setLayout(layout)
         return self.srfWid
-        # self.srfWid.show()
+
+    def mouseMoved(self, event):
+        x = event.x()
+        y = event.y()
+        mousePoint = self.second_g2rf.plotItem.vb.mapSceneToView(event)
+        # print(mousePoint.x(), 0)
+        self.g2rf_vline.setPos((mousePoint.x(), 0))
+        self.g2rf_hline.setPos((0, mousePoint.y()))
+        self.blt2rfCoor(mousePoint.x(), mousePoint.y())
+        self.blt2RfBun(mousePoint.x(), mousePoint.y())
+
+    def rf2Help(self):
+        self.srf_wid = QWidget()
+        srf_layout = QGridLayout()
+        title = QLabel("Dr. BBat is a Double RF Bunch and Bucket Analysis Tool")
+        titleFont = QFont("Helvetica", 11, QFont.Bold)
+        title.setFont(titleFont)
+        srf_layout.addWidget(title)
+
+        menu_curves = QLabel(
+            "Menu Curves\nGreen\nIt's the total RF waveform V(phi) = vrf*sin(phi)+Vn*Sin(n*phi+n*theta)\n\nBlue\nIt's the RF potential U(phi)=integral{V(phi)}\n\n"
+        )
+        srf_layout.addWidget(menu_curves)
+        curves = QLabel(
+            "Orange\nThe buckets.\n\nScales\n To update the green and blue curve scales press --U and ++U\nYou can change the bucket curves by using the --W and ++W buttons."
+        )
+        srf_layout.addWidget(curves)
+        input_label = QLabel(
+            "Vrf\nContains the same value as BBat. Any change made in either window will effect each other. This also works for the phis parameter (in degrees).\n\nVn\nVoltage (kV) on the second Rf system.\n\nn\nThe n-th harmonic.\n\nTheta\nThe phase difference between these two rf voltages (-pi/n < theta < pi/n).\n\nPhis\nSynchronous phase angle defined by Vrf*Sin(phis)+Vn*Sin(n*phis+n*theta)=C*rho*Bdot\nIf Vn+0, it has a simple physical meaning: Vrf*sin(phis) is the energy gain per turn. When Vn !=0, the physical meaning is not so easy... but if phis+theta=k*pi (where k is an integer)\nphis regains its simple physical meaning for the second rf system doesn't supply energy to the beam."
+        )
+        srf_layout.addWidget(input_label)
+        self.srf_wid.setLayout(srf_layout)
+        self.srf_wid.show()
+
+    def blt2rfCoor(self, x, y):
+        self.phase_value2.setText(str(x))
+        self.phase_t1 = (x / 360) / (self.frf_1 + 1.0e-20) * bmath.kilo
+        self.phasens_value2.setText(str(self.phase_t1))
+        self.dE = y * 2.0 * bmath.pi * self.frf_1  # frf_1 in MHz, dE in MeV
+        self.demev_line2.setText(str(self.dE))
+        self.dE_Es = self.dE / self.Es * bmath.kilo * bmath.mega  # Es in eV
+        self.dees_line2.setText(str(self.dE_Es))
+        self.dP = self.dE / self.betas1
+        self.dP_Ps = self.betas1 * self.betas1 * self.dE_Es
+        self.dpmevc_val2.setText(str(self.dP))
+        self.dpps_val2.setText(str(self.dP_Ps))
+        self.gamma_tr = self.machineValues["gamma_tr"]
+        self.dR_R = self.dP_Ps / self.gamma_tr**2
+        self.df_f = -self.dP_Ps * self.etas_1
+        self.drr_val2.setText(str(self.dR_R))
+        self.dff_val2.setText(str(self.df_f))
 
     def set_n(self):
         self.n = float(self.n_line.text())
@@ -404,39 +522,37 @@ class BBat(CADMainWindow):
             for j in self._g2rfsep:
                 if j in data_names:
                     self.second_g2rf.removeDataset(j)
-                else:
-                    print("unable to find dataset on plot")
-            self._g2rfsep = []
-            # while i >= 0:
-            #    self._g2rfsep.append(self.sep[i])
-            # .second.g2rf element create sep$i -xdata sep${i}_x -ydata sep${i}_y -symbol none -linewidth 0.8 -color orange
-            # lappend _g2rfsep sep$i
-            #    i = i-1
+                    data_names.remove(j)
+            while i >= 0:
+                self._g2rfsep.append("sep" + str(i))
+                self.second_g2rf.addOrUpdateDataset(
+                    "sep" + str(i),
+                    self.sep_x["sep_" + str(i)],
+                    self.sep_y["sep_" + str(i)],
+                    color="orange",
+                    width=0.8,
+                )
+                i = i - 1
 
     def refresh_command(self):
         data_names = list(self.second_g2rf._entries.keys())
-        if "2RFU" in data_names:
+        if "2RFV" in data_names:
             to_delete = self._g2rfsep + self.g2rflist
             for d in to_delete:
-                self.second_g2rf.removeDataset(d)
-
-        self.second_g2rf.setXRange(-180, 360)
+                if d in data_names:
+                    self.second_g2rf.removeDataset(d)
+        self.second_g2rf.plotItem.vb.setXRange(-370, 370)
+        self.second_g2rf.plotItem.vb.setYRange(-3, 3)
         self.second_g2rf.addOrUpdateDataset(
             "2RFU", self.RFU2_x, self.RFU2_y, color="blue", width=0.8
         )
         self.second_g2rf.addOrUpdateDataset(
             "2RFV", self.RFV2_x, self.RFV2_y, color="green", width=0.8
         )
-
-        ##############################bdot
-        # self.second_g2rf.addOrUpdateDataset("bdot", self.vzero_x, [self.bdot, self.bdot], color="black", width = 0.8)
-
         ##############################phis_1
         self.second_g2rf.addOrUpdateDataset(
             "phis_1", self.phis_1_x, self.phis_1_y, color="brown", width=0.8
         )
-        # this is commented out : {$phis_1 $phis_1} -ydata {0 1000}
-
         ##############################coordinates
         self.second_g2rf.addOrUpdateDataset(
             "vzero", self.vzero_x, self.vzero_y, color="red", width=0.8
@@ -444,21 +560,10 @@ class BBat(CADMainWindow):
         self.second_g2rf.addOrUpdateDataset(
             "vinf", self.vinf_x, self.vinf_y, color="red", width=0.8
         )
-
-        ##############################hlines
-        # .second.g2rf element create hline -symbol none -linewidth 0.8 -color orange -xdata hline_x -ydata hline_y
-        # Init_Sep $n
         self.second_g2rf.addOrUpdateDataset(
             "hline", self.hline_x, self.hline_y, color="orange", width=0.8
         )
-        self.init_sep(self.n)
-
-        # for {set i 0} {$i < 100} {incr i} {
-        # 	bltvector sep${i}_x
-        # 	bltvector sep${i}_y
-        # }
-        # for i in range(0, 100):
-        # idk i guess make a bunch of sep lists?? but it would have to be like 100 of them.
+        self.init_sep()
 
     def draw2rfButtonCommand(self):
         # """ this is the action the redraw button completes
@@ -466,23 +571,23 @@ class BBat(CADMainWindow):
         #    and redraws the main lines in the graph. (idk about hline, sep3,2,1,0)
         # """
         self.init_sep()
-        vec_2rfv = bTools.Draw2rf(
-            self.Vrf_2rf, self.Vn, self.n, self.theta, self.phase_t1
-        )
+        vec_2rfv = bTools.Draw2rf(self.Vrf, self.Vn, self.n, self.theta, self.phase_t1)
+        self.RFU2_y = [0] * len(vec_2rfv)
         self.second_g2rf.addOrUpdateDataset(
-            "2RFV", vec_2rfv, self.RFV2_y, color="green", width=0.8
+            "2RFV", vec_2rfv, self.RFU2_y, color="green", width=0.8
         )
 
         vec_2rfu = bTools.Draw2rfU(
             self.A_1,
             self.B_1,
-            self.Vrf_2rf,
+            self.Vrf,
             self.Vn,
             self.n,
             self.theta,
             self.phis_1,
             self.phase_t1,
         )
+        self.RFU2_y = [0] * len(vec_2rfu)
         self.second_g2rf.addOrUpdateDataset(
             "2RFU", vec_2rfu, self.RFU2_y, color="blue", width=0.8
         )
@@ -492,7 +597,31 @@ class BBat(CADMainWindow):
             "phis_1", [0, 1, 2, 3], vec_phis, color="brown", width=0.8
         )
 
-    # Draw2rfSep  ".second.g2rf" "sep" $A_1 $B1 $vrf $vn $n $theta $phis_1;
+        self.second_g2rf.addOrUpdateDataset(
+            "vzero", self.vzero_x, self.vzero_y, color="red", width=0.8
+        )
+        self.second_g2rf.addOrUpdateDataset(
+            "vinf", self.vinf_x, self.vinf_y, color="red", width=0.8
+        )
+
+        sep_data = bTools.Draw2rfSep(
+            self.n,
+            self.phase_t1,
+            self.theta,
+            self.phis,
+            self.A_1,
+            self.Vrf,
+            self.Vn,
+            self.B1,
+        )
+        # print(sep_data)
+
+        for i in range(0, len(sep_data)):
+            data = sep_data[i]
+            self.second_g2rf.addOrUpdateDataset("sep" + str(i), data[0], data[1])
+        # Draw2rfSep  ".second.g2rf" "sep" $A_1 $B1 $vrf $vn $n $theta $phis_1;
+        # self.A2bkt = bTools.BKT2rf(self.phase_t1, self.n, self.theta, self.phis, self.A_1, self.Vrf, self.Vn, self.B1, self.phis_1)
+        self.updateVPlot()
 
     def helpText(self):
         """This help text will replace the help menu in the widget
@@ -510,35 +639,48 @@ class BBat(CADMainWindow):
         value = float(self.vrf_line.text())
         self.V_1spinbox.setValue(value)
         self.A = value
-        self.Vrf_2rf = value
-        self.Vrf_k = self.Vrf_2rf * bmath.kilo
-        self.deltav = self.Vn / (self.Vrf_2rf + 1.0e-20)
+        self.Vrf = value
+        self.Vrf_k = self.Vrf * bmath.kilo
+        self.Vn_k = self.Vn * bmath.kilo
+        self.deltav = self.Vn / (self.Vrf + 1.0e-20)
         self.lotheta = -180 / self.n
         self.uptheta = 180 / self.n
         self.phi2s = self.phis_1 + self.theta
+        self.init_sep()
         self.draw2rfButtonCommand()
 
     def setVnalue(self):
         value = float(self.vn_line.text())
         self.A = value
         self.Vn_k = self.Vn * bmath.kilo
-        self.deltav = self.Vn / (self.Vrf_2rf + 1e-20)
+        self.Vrf_k = self.Vrf * bmath.kilo
+        self.deltav = self.Vn / (self.Vrf + 1e-20)
         self.lotheta = -180 / self.n
+        self.uptheta = 180 / self.n
         self.phi2s = self.phis_1 + self.theta
+        self.init_sep()
         self.draw2rfButtonCommand()
 
     def setValue(self):
         value = float(self.phis_line.text())
         self.A = value
         self.phis_1 = value
-        self.deltav = self.Vn / (self.Vrf_2rf + 1e-20)
+        self.Vn_k = self.Vn * bmath.kilo
+        self.Vrf_k = self.Vrf * bmath.kilo
+        self.deltav = self.Vn / (self.Vrf + 1e-20)
         self.lotheta = -180 / self.n
         self.phi2s = self.phis_1 + self.theta
+        self.init_sep()
+        self.draw2rfButtonCommand()
 
     def setTValue(self):
         value = float(self.t_line.text())
         self.thetaSB.setValue(value)
         self.A = value
+        self.Vn_k = self.Vn * bmath.kilo
+        self.Vrf_k = self.Vrf * bmath.kilo
+        self.deltav = self.Vn / (self.Vrf + 1e-20)
+        self.init_sep()
         self.draw2rfButtonCommand()
 
     # these are for the spinbox
@@ -551,14 +693,16 @@ class BBat(CADMainWindow):
         value = self.V_1spinbox.value()
         self.vrf_line.setText(str(value))
         self.A = value
-        self.Vrf_2rf = value
-        self.Vrf_k = self.Vrf_2rf * bmath.kilo
-        self.deltav = self.Vn / (self.Vrf_2rf + 1.0e-20)
+        self.Vrf = value
+        self.Vrf_k = self.Vrf * bmath.kilo
+        self.Vn_k = self.Vn * bmath.kilo
+        self.deltav = self.Vn / (self.Vrf + 1.0e-20)
         self.lotheta = -180 / self.n
         self.uptheta = 180 / self.n
         self.phi2s = self.phis_1 + self.theta
-        self.vrf_line.setText(str(self.Vrf_2rf))
+        self.vrf_line.setText(str(self.Vrf))
         self.vnvrf_line.setText(str(self.deltav))
+        self.init_sep()
         self.draw2rfButtonCommand()
 
     def setVnalueSB(self):
@@ -567,10 +711,12 @@ class BBat(CADMainWindow):
         self.Vn = value
         self.A = value
         self.Vn_k = self.Vn * bmath.kilo
-        self.deltav = self.Vn / (self.Vrf_2rf + 1e-20)
+        self.Vrf_k = self.Vrf * bmath.kilo
+        self.deltav = self.Vn / (self.Vrf + 1e-20)
         self.lotheta = -180 / self.n
         self.phi2s = self.phis_1 + self.theta
         self.vnvrf_line.setText(str(self.deltav))
+        self.init_sep()
         self.draw2rfButtonCommand()
 
     def setValueSB(self):
@@ -578,27 +724,37 @@ class BBat(CADMainWindow):
         self.phis_line.setText(str(value))
         self.phis_1 = value
         self.A = value
-        self.deltav = self.Vn / (self.Vrf_2rf + 1e-20)
+        self.Vn_k = self.Vn * bmath.kilo
+        self.Vrf_k = self.Vrf * bmath.kilo
+        self.deltav = self.Vn / (self.Vrf + 1e-20)
         self.lotheta = -180 / self.n
         self.phi2s = self.phis_1 + self.theta
         self.phis_line.setText(str(self.phis_1))
         self.phi2s_line.setText(str(self.phi2s))
+        self.init_sep()
+        self.draw2rfButtonCommand()
 
     def setKValueSB(self):
         value = self.k0.value()
         self.A = value
-        self.Vrf_2rf = (self.A * bmath.v1max) / 100
-        self.vrf_line.setText(str(self.Vrf_2rf))
-        self.Vrf_k = self.Vrf_2rf * bmath.kilo
+        self.k = value
+        self.Vrf = self.A * bmath.v1max / 100
+        self.vrf_line.setText(str(self.Vrf))
+        self.Vrf_k = self.Vrf * bmath.kilo
         self.Vn = (100.0 - self.A) * bmath.v1max / 100
         self.vn_line.setText(str(self.Vn))
+        self.Vn_k = self.Vn * bmath.kilo
+        self.init_sep()
         self.draw2rfButtonCommand()
 
     def setTValueSB(self):
         value = self.thetaSB.value()
         self.A = value
+        self.Vn_k = self.Vn * bmath.kilo
+        self.Vrf_k = self.Vrf * bmath.kilo
         self.theta = value
         self.t_line.setText(str(value))
+        self.init_sep()
         self.draw2rfButtonCommand()
 
     def W2_plus(self):
@@ -606,14 +762,14 @@ class BBat(CADMainWindow):
         self.W2Max = self.W2Max + self.ww
         self.W2Min = self.W2Min - self.ww
         print(self.W2Min)
-        self.sg2rf_vb.setYRange(self.W2Min, self.W2Max)
+        self.second_g2rf.plotItem.vb.setYRange(self.W2Min, self.W2Max)
 
     def W2_minus(self):
         # connects to W--
         self.W2Max = self.W2Max - self.ww
         self.W2Min = self.W2Min + self.ww
         print(self.W2Min)
-        self.sg2rf_vb.setYRange(self.W2Min, self.W2Max)
+        self.second_g2rf.plotItem.vb.setYRange(self.W2Min, self.W2Max)
 
     def U2_plus(self):
         # connects to U++
@@ -630,83 +786,83 @@ class BBat(CADMainWindow):
         # configure the y2 axis to have the new max and min values
 
     def vplot(self):
-        self.v_wid = QWidget()
-        self.v_wid.setWindowTitle("Vrf form")
-        self.v_layout = QGridLayout()
-        self.v_plot = CadPlot()
-        self.vplot_vb = self.v_plot.getViewBox()
-        self.vplot_vb.setXRange(-370, 370)
-        # set the tick marks at 45 if possible
-        self.v_layout.addWidget(self.v_plot, 0, 0, 6, 10)
-        self.v_ok = QPushButton("OK")
-        self.v_ok.clicked.connect(self.v_wid.close)
-        self.v_layout.addWidget(self.v_ok, 6, 0, 1, 10)
-        self.v_wid.setLayout(self.v_layout)
+        self.updateVPlot()
+        self.v_wid.show()
 
-        self.vzerox = [-370, 370]
-        self.vzeroy = [0, 0]
-
+    def updateVPlot(self):
         X_data = []
         Y_data = []
         Yn_data = []
         Yt_data = []
         for i in range(-360, 360):
             X_data.append(i)
-            Y_data.append(self.Vrf_2rf * math.sin(i / bmath.radeg))
+            Y_data.append(self.Vrf * math.sin(i / bmath.radeg))
             Yn_data.append(self.Vn * math.sin(self.n * (i + self.theta) / bmath.radeg))
             Yt_data.append(
-                self.Vrf_2rf * math.sin(i / bmath.radeg)
+                self.Vrf * math.sin(i / bmath.radeg)
                 + self.Vn * math.sin(self.n * (i + self.theta) / bmath.radeg)
             )
 
-        self.v_plot.addDataset("Vrf", X_data, Y_data, color="blue", width=0.8)
-        self.v_plot.addDataset("Vn", X_data, Yn_data, color="red", width=0.8)
-        self.v_plot.addDataset("Vrfn", X_data, Yt_data, color="green", width=0.8)
-        self.v_plot.addDataset(
+        self.v_plot.addOrUpdateDataset("Vrf", X_data, Y_data, color="blue", width=0.8)
+        self.v_plot.addOrUpdateDataset("Vn", X_data, Yn_data, color="red", width=0.8)
+        self.v_plot.addOrUpdateDataset(
+            "Vrfn", X_data, Yt_data, color="green", width=0.8
+        )
+        self.v_plot.addOrUpdateDataset(
             "phis_1",
             [self.phis_1, self.phis1],
-            [0, self.Vrf_2rf],
+            [0, self.Vrf],
             color="brown",
             width=0.8,
         )
-        self.v_plot.addDataset(
+        self.v_plot.addOrUpdateDataset(
             "vzero", self.vzerox, self.vzeroy, color="red", width=0.8
         )
-        self.v_plot.addDataset("vinf", self.vzeroy, self.vzerox, color="red", width=0.8)
-        self.v_wid.show()
+        self.v_plot.addOrUpdateDataset(
+            "vinf", self.vzeroy, self.vzerox, color="red", width=0.8
+        )
 
-    #########
-    # Methods for graph stuff
-    #########
-    # def set2rfcoor(self, graph):
-    # track mouse motion and add the cursorline
-    # self.v_plot.addInfiniteLine ?
-    # this might have to be custom, a constantly following mouse line
-
-    def blt2rfCoor(self, W, x, y, graph, winX, winY):
+    def blt2RfBun(self, x, y):
         # scan [$graph invtransform $winX $winY] "%s %s" sop(x) sop(y)
-        self.phase_t1 = (self.sop(x) / 360) / (self.frf_1 + 1.0e-20) * bmath.kilo
-        self.dE = self.sop(y) * 2.0 * bmath.pi * self.frf_1  # frf_1 in MHz, dE in MeV
-        self.dE_Es = self.dE / self.Es * bmath.kilo * bmath.mega  # Es in eV
-        self.dP = self.dE / self.betas1
-        self.dP_Ps = self.betas1 * self.betas1 * self.dE_Es
-        # need to find the gamma tr, idk if it means the current selection
-        # set to AGS for now
-        self.dR_R = self.dP_Ps / bmath.gamma_tr_ags**2
-        # set dR_R [expr $dP_Ps/pow($gamma_tr,2.0)]
-        self.df_f = -self.dP_Ps * self.etas_1
+        self.phi2 = x
+        contour_data = bTools.Draw2rfHcontour(
+            self.theta,
+            self.phis_1,
+            self.phi2,
+            self.n,
+            self.phase_t1,
+            self.A_1,
+            self.Vrf,
+            self.Vn,
+            self.B1,
+        )
+        self.second_g2rf.addOrUpdateDataset(
+            "hline", self.hline_x, contour_data, color="orange", width=0.8
+        )
 
-    # proc Set2RFBun { graph } {
-    #    global bindings
-    #    set bindings(<ButtonPress-3>,$graph,coor) {
-    #    blt2rfbun %W %x %y
-    # }
-    #   bltResetBindings $graph <ButtonPress-3>
-    # }
-
-    def blt2RfBun(self, W, x, y, graph, winX, winY):
-        # phi2 was not defined
-        phi2 = self.sop(x)
+        self.A2Bun = bTools.BUN2rf(
+            self.theta,
+            self.phis,
+            self.phi2,
+            self.n,
+            self.phase_t1,
+            self.A_1,
+            self.Vrf,
+            self.Vn,
+            self.B_1,
+            bmath.A[self.species],
+        )
+        self.fnu2rf = bTools.fnu2rf(
+            self.theta,
+            self.phis,
+            self.phi2,
+            self.n,
+            self.phase_t1,
+            self.A_1,
+            self.Vrf,
+            self.Vn,
+            self.B_1,
+        )
 
     def MoreResults(self):
         self.morRes = QWidget()
@@ -752,8 +908,7 @@ class BBat(CADMainWindow):
         layout.addWidget(ok, 11, 0, 1, 2)
 
         self.morRes.setLayout(layout)
-        return self.morRes
-        # self.morRes.show()
+        self.morRes.show()
 
     def ButtonPanel(self):
         self.buttonWid = QWidget()
@@ -785,11 +940,20 @@ class BBat(CADMainWindow):
         return self.buttonWid
 
     def refreshPlot(self):
-        curr_items = list(self.plot._entries.keys)
+        curr_items = list(self.plot._entries.keys())
         if "BKT" in curr_items:
             self.plot.removeDataset("BKT")
         if "BUN" in curr_items:
             self.plot.removeDataset("BUN")
+        self.plot.plotItem.vb.setXRange(-190, 370)
+        self.BKT_x = []
+        self.BKT_y = []
+        self.plot.addOrUpdateDataset(
+            "BKT", self.BKT_x, self.BKT_y, color="red", width=0.8
+        )
+        self.BUN_x = []
+        self.BUN_y = []
+        self.plot.addOrUpdateDataset("BUN", self.BUN_x, self.BUN_y, width=0.8)
 
     def show_SRF(self, checked):
         self.srf = self.secondRFWindow()
@@ -877,13 +1041,13 @@ class BBat(CADMainWindow):
         self.mainTextWid = QWidget()
         self.mainTextLayout = QGridLayout()
         phase = QLabel("phase(deg):")
-        phase_value = QLabel("54.1689284")
+        self.phase_value = QLabel("54.1689284")
         phasens = QLabel("phase(ns):")
-        phasens_value = QLabel("2.45909358")
+        self.phasens_value = QLabel("2.45909358")
         self.mainTextLayout.addWidget(phase, 0, 0, 1, 1)
-        self.mainTextLayout.addWidget(phase_value, 0, 1, 1, 1)
+        self.mainTextLayout.addWidget(self.phase_value, 0, 1, 1, 1)
         self.mainTextLayout.addWidget(phasens, 0, 2, 1, 1)
-        self.mainTextLayout.addWidget(phasens_value, 0, 3, 1, 1)
+        self.mainTextLayout.addWidget(self.phasens_value, 0, 3, 1, 1)
 
         bunch = QLabel("bunch length (ns): ")
         bunch_value = QLabel("2")
@@ -891,45 +1055,45 @@ class BBat(CADMainWindow):
         self.mainTextLayout.addWidget(bunch_value, 1, 1, 1, 2)
 
         de_mev = QLabel("dE(MeV):")
-        demev_line = QLabel("something")
+        self.demev_line = QLabel(str(self.dE))
         de_es = QLabel("dE/Es(10^-3):")
-        dees_line = QLabel("something")
+        self.dees_line = QLabel(str(self.dE_Es))
         self.mainTextLayout.addWidget(de_mev, 2, 0, 1, 1)
-        self.mainTextLayout.addWidget(demev_line, 2, 1, 1, 1)
+        self.mainTextLayout.addWidget(self.demev_line, 2, 1, 1, 1)
         self.mainTextLayout.addWidget(de_es, 2, 2, 1, 1)
-        self.mainTextLayout.addWidget(dees_line, 2, 3, 1, 1)
+        self.mainTextLayout.addWidget(self.dees_line, 2, 3, 1, 1)
 
         dp_mevc = QLabel("dp(MeV/c):")
-        dpmevc_val = QLabel("something")
+        self.dpmevc_val = QLabel(str(self.dP))
         dp_ps = QLabel("dP/Ps(10^-3)")
-        dpps_val = QLabel("Something")
+        self.dpps_val = QLabel(str(self.dP_Ps))
         self.mainTextLayout.addWidget(dp_mevc, 3, 0, 1, 1)
-        self.mainTextLayout.addWidget(dpmevc_val, 3, 1, 1, 1)
+        self.mainTextLayout.addWidget(self.dpmevc_val, 3, 1, 1, 1)
         self.mainTextLayout.addWidget(dp_ps, 3, 2, 1, 1)
-        self.mainTextLayout.addWidget(dpps_val, 3, 3, 1, 1)
+        self.mainTextLayout.addWidget(self.dpps_val, 3, 3, 1, 1)
 
         dr_r = QLabel("dR/R(10^-3):")
-        drr_val = QLabel("something")
-        df_f = QLabel("df/f(10^3):")
-        dff_val = QLabel("something")
+        self.drr_val = QLabel(str(self.dR_R))
+        self.dff_label = QLabel("df/f(10^3):")
+        self.dff_val = QLabel(str(self.df_f))
         self.mainTextLayout.addWidget(dr_r, 4, 0, 1, 1)
-        self.mainTextLayout.addWidget(drr_val, 4, 1, 1, 1)
-        self.mainTextLayout.addWidget(df_f, 4, 2, 1, 1)
-        self.mainTextLayout.addWidget(dff_val, 4, 3, 1, 1)
+        self.mainTextLayout.addWidget(self.drr_val, 4, 1, 1, 1)
+        self.mainTextLayout.addWidget(self.dff_label, 4, 2, 1, 1)
+        self.mainTextLayout.addWidget(self.dff_val, 4, 3, 1, 1)
 
         fnu = QLabel("fnu(Hz):")
-        fnu_val = QLabel(" ")
+        self.fnu_val = QLabel(str(self.fnu))
         self.mainTextLayout.addWidget(fnu, 5, 0, 1, 1)
-        self.mainTextLayout.addWidget(fnu_val, 5, 1, 1, 1)
-        dfnu = QLabel("dfnu(Hz):")
-        dfnu_val = QLabel(" ")
-        self.mainTextLayout.addWidget(dfnu, 5, 2, 1, 1)
-        self.mainTextLayout.addWidget(dfnu_val, 5, 3, 1, 1)
+        self.mainTextLayout.addWidget(self.fnu_val, 5, 1, 1, 1)
+        dfnu_label = QLabel("dfnu(Hz):")
+        self.dfnu_val = QLabel(str(self.dfnu))
+        self.mainTextLayout.addWidget(dfnu_label, 5, 2, 1, 1)
+        self.mainTextLayout.addWidget(self.dfnu_val, 5, 3, 1, 1)
 
         vrfkv = QLabel("Vrf(kV)")
-        vrfkv_value = QLabel("1.20602")
+        self.vrfkv_value = QLabel(str(self.Vrf_i))
         self.mainTextLayout.addWidget(vrfkv, 6, 0, 1, 2)
-        self.mainTextLayout.addWidget(vrfkv_value, 6, 2, 1, 2)
+        self.mainTextLayout.addWidget(self.vrfkv_value, 6, 2, 1, 2)
 
         self.mainTextWid.setLayout(self.mainTextLayout)
 
@@ -957,8 +1121,9 @@ class BBat(CADMainWindow):
         bd_header = QLabel("B Dot (T/s)")
         bd_header.setFont(headerFont)
         layout.addWidget(bd_header, 2, 0, 1, 2)
-        bd_line = QLineEdit("0.0")
-        layout.addWidget(bd_line, 2, 2, 1, 1)
+        self.bd_line = QLineEdit("0.0")
+        self.bd_line.returnPressed.connect(self.setBdot)
+        layout.addWidget(self.bd_line, 2, 2, 1, 1)
 
         self.rff_line = QLineEdit("28.0")
         # drop down for rf frequency
@@ -980,11 +1145,13 @@ class BBat(CADMainWindow):
         self.rfv_header = QLabel("RF voltage/turn (kV)")
         layout.addWidget(self.rfv_header, 4, 0, 1, 2)
         self.rfv_line = QLineEdit("100")
+        self.rfv_line.returnPressed.connect(self.setRFV)
         layout.addWidget(self.rfv_line, 4, 2, 1, 1)
 
         self.rfh_header = QLabel("RF harmonic number")
         layout.addWidget(self.rfh_header, 5, 0, 1, 2)
         self.rfh_line = QLineEdit("360")
+        self.rfh_line.returnPressed.connect(self.setRFH)
         layout.addWidget(self.rfh_line, 5, 2, 1, 1)
 
         w_minus = QPushButton("--W")
@@ -1091,6 +1258,15 @@ class BBat(CADMainWindow):
         cp_widget.setLayout(layout)
         return cp_widget
 
+    def setBdot(self):
+        self.Bdot = float(self.bd_line.text())
+
+    def setRFV(self):
+        self.Vrf = float(self.rfv_line.text())
+
+    def setRFH(self):
+        self.h = float(self.rfh_line.text())
+
     def updateMachine(self):
         self.machine = self.machine_line.currentText()
 
@@ -1103,6 +1279,16 @@ class BBat(CADMainWindow):
             "Bunch Length (deg)": "ld",
         }
         self.BUN = b_dict[b_value]
+
+    def updateBunchVar(self):
+        if self.BUN == "lt":
+            self.BUNlt = float(self.bunch_line.text())
+        elif self.BUN == "em":
+            self.BUNe = float(self.bunch_line.text())
+        elif self.BUN == "lr":
+            self.BUNlr = float(self.bunch_line.text())
+        else:
+            self.BUNld = float(self.bunch_line.text())
 
     def RFFreq_action(self):
         text = self.rff_header.currentText()
@@ -1234,9 +1420,7 @@ class BBat(CADMainWindow):
         )
         self.A = self.etas * ((self.h * bmath.c / self.Ro) ** 2) / self.Es
         self.B = self.e * self.Vrf_k / (2 * bmath.pi * self.h)
-        print(self.phis)
         self.phis = bTools.phi_s(self.etas, self.C, self.rho, self.bdot, self.Vrf_k)
-        print(self.phis)
         if self.phis == float("inf"):
             print("phis is infinity, ignoring the value")
             self.fnu = self.fnu
@@ -1263,7 +1447,7 @@ class BBat(CADMainWindow):
 
         # DrawBkt $phis $A $B
 
-        self.phis1 = self.phis * 180 / bmath.pi
+        self.phis_1 = self.phis * 180 / bmath.pi
 
         ## IDK why this is done twice...
         if self.gbfpk == "gamma":
@@ -1502,7 +1686,7 @@ class BBat(CADMainWindow):
         if self.BUN == "em":
             if self.BUNe <= 0.0:
                 print(" Bunch area is always > 0")
-            self.BUNe_1 = self.BUNe * bmath.A(self.species)
+            self.BUNe_1 = self.BUNe * bmath.A[self.species]
             self.abun = self.BUNe_1 / self.st_bkt
             self.phibun2 = bTools.i_Alpha_bun(self.abun, self.phis_2)
 
@@ -1596,29 +1780,29 @@ class BBat(CADMainWindow):
         self.pc_1 = self.pc / bmath.giga / bmath.A[self.species]
         self.pc = self.pc / bmath.giga / bmath.A[self.species]
 
-    def bltCoor(self, graph, winX, winY):
-        pos = {}
-        x, y = map(float, graph.invtransform(winX, winY).split())
-        pos["x"], pos["y"] = x, y
-
-        # self._pos = 0
-        self.current_x_position = 0
-        self.current_y_position = 0
-        self.dE = self.current_y_position * 2.0 * bmath.pi * self.frf_1
-        self.frf_1 = 0
+    def bltCoor(self, x, y):
+        self.phase_t1 = x / 360 / (self.frf_1 + 1.0e-20) * bmath.kilo
+        self.phase_value.setText(str(self.phase_t1))
+        self.dE = y * 2.0 * bmath.pi * self.frf_1
+        self.demev_line.setText(str(self.dE))
         self.dE_Es = self.dE / self.Es * bmath.kilo * bmath.mega
-        self.Es = 0
-        self.A_1 = 0
-        # self.B_1 = 0 # need to figure out the B_1 situation
-        self.phis = 0
-        self.fnu_1 = 1.0 / (self.tnu + 1.0e-20)
+        self.dees_line.setText(str(self.dE_Es))
         self.dP = self.dE / self.betas_1
+        self.dpmevc_val.setText(str(self.dP))
         self.dP_Ps = self.dE_Es / (self.betas_1 * self.betas_1)
-        self.betas_1 = 0
-        self.phase_t1 = (
-            self.current_x_position / 360 / (self.frf_1 + 1.0e-20) * bmath.kilo
-        )
-        self.Vrf_i = self.A_1 * pos[y] ** 2 * bmath.pi * self.h
+        self.dpps_val.setText(str(self.dP_Ps))
+        self.gamma_tr = self.machineValues["gamma_tr"]
+        self.dR_R = self.dP_Ps / self.gamma_tr**2
+        self.drr_val.setText(str(self.dR_R))
+        self.df_f = -self.dP_Ps * self.etas_1
+        self.dff_val.setText(str(self.df_f))
+        self.x = x * (bmath.pi / 180)
+        self.Tnu = bTools.Period_bun(self.phis, self.x, self.A_1, self.B_1)
+        self.fnu_1 = 1.0 / (self.Tnu + 1.0e-20)
+        self.fnu_val.setText(str(self.fnu_1))
+        self.dfnu = -(self.fnu - self.fnu_1)
+        self.dfnu_val.setText(str(self.dfnu))
+        self.Vrf_i = self.A_1 * (y**2) * bmath.pi * self.h
         self.Vrf_i = (
             abs(self.Vrf_i)
             / self.e
@@ -1626,22 +1810,13 @@ class BBat(CADMainWindow):
             / (
                 1.0e-20
                 + abs(
-                    math.cos(x)
+                    math.cos(self.x)
                     - math.cos(self.phis)
-                    + (x - self.phis) * math.sin(self.phis)
+                    + (self.x - self.phis) * math.sin(self.phis)
                 )
             )
         )
-        self.dfnu = -(self.fnu - self.fnu_1)
-        self.fnu = 0
-        self.dR_R = self.dP_Ps / self.gamma_tr**2
-        self.df_f = -self.dP_Ps * self.etas_1
-        # Para.pi, Para.mega, Para.kilo
-        self.etas_1 = 0
-        self.gamma_tr = 0
-
-        self.x = pos["x"] * bmath.pi / 180
-        self.tnu = self.period_bun(self.phis, self.x, self.A_1, self.B_1)
+        self.vrfkv_value.setText(str(self.Vrf_i))
 
     def bun(self, graph, winX, winY):
         pos = {}
@@ -1650,41 +1825,40 @@ class BBat(CADMainWindow):
 
         self.phibun1 = 0
         self.phibun2 = pos["x"] / bmath.radeg
-        self.BUNe = 0
         self.BUNld = 0
         self.BUNlr = 0
         self.phi2 = bmath.pi - self.phis  # phi2 of bkt
 
         if self.etas_1 >= 0:
             if self.phibun2 <= self.phi2 and self.phibun2 > self.phis:
-                self.phibun1 = Phi_1_bun(self.phis, self.phibun2)
+                self.phibun1 = bTools.Phi_1_bun(self.phis, self.phibun2)
                 self.BUNlr = abs(self.phibun2 - self.phibun1)
                 self.phi12 = self.BUNlr
                 self.BUNlt = (
                     self.BUNlr / (2.0 * bmath.pi * self.frf_1 * bmath.mega) / bmath.ns
                 )
                 self.BUNld = self.phi12 * bmath.radeg
-                self.abun = Alpha_bun_phi12(self.phi12, self.phis)
+                self.abun = bTools.Alpha_bun_phi12(self.phi12, self.phis)
                 self.BUNe_1 = self.abun * self.sk_bkt
                 self.BUNe = self.BUNe_1
         # DrawBun $phis $phibun1 $phibun2 $A_1 $B_1
         # .gbkt element show {BUN BKT}
         else:
             if self.phibun2 >= self.phi2 and self.phibun2 < self.phis:
-                self.phibun2 = Generic_phi2(self.phis, self.phibun2)
+                self.phibun2 = bTools.Generic_phi2(self.phis, self.phibun2)
                 # bTools.generic_phis
-                self.phibun1 = Phi_1_bun(self.phis, self.phibun2)
+                self.phibun1 = bTools.Phi_1_bun(self.phis, self.phibun2)
                 self.BUNlr = abs(self.phibun2 - self.phibun1)
                 self.phi12 = self.BUNlr
                 self.BUNlt = (
                     self.BUNlr / (2.0 * bmath.pi * self.frf_1 * bmath.mega) / bmath.ns
                 )  # MHz
                 self.BUNld = self.phi12 * bmath.radeg
-                self.abun = Alpha_bun_phi12(self.phi12, self.phis)
+                self.abun = bTools.Alpha_bun_phi12(self.phi12, self.phis)
                 self.BUNe_1 = self.abun * self.st_bkt
                 self.BUNe = self.BUNe_1
-                self.phibun2 = i_Alpha_bun(self.abun, self.phis)
-                self.phibun1 = Phi_1_bun(self.phis, self.phibun2)
+                self.phibun2 = bTools.i_Alpha_bun(self.abun, self.phis)
+                self.phibun1 = bTools.Phi_1_bun(self.phis, self.phibun2)
                 self.phibun1 = bTools.proper_phi(self.phis, self.phibun1)
                 self.phibun2 = bTools.proper_phi(self.phis, self.phibun2)
         # DrawBun $phis $phibun1 $phibun2 $A_1 $B_1

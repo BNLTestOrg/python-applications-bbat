@@ -105,7 +105,8 @@ class bTools:
                 x1 = rts
             else:
                 xh = rts
-        return float("inf")
+        return 1
+        # return float("inf")
 
     def qchebyshev_t(func, a, b, t):
         """Computes the chebyshev using 20 points and given coefficients
@@ -261,6 +262,14 @@ class bTools:
     # bktbun.c
     ###
     def sign(A):
+        """Returns the sign of float input A
+
+        Args:
+            A (float): value to verify sign of
+
+        Returns:
+            int : positive 1 if A is greater than 0 or -1 if A is less than 0
+        """
         return 1 if A >= 0 else -1
 
     def cvector(nl, nh):
@@ -275,19 +284,6 @@ class bTools:
         """
         v = bytearray(nh - nl + 1)
         return v[nl - 1 :]
-
-        # idk if this is neccessary in python
-        # def free_cvector(v, nl, nh):
-        """
-        Free a char vector allocated with cvector().
-
-        Args:
-            v (bytearray): The vector to be freed.
-            nl (int): The lower index of the vector.
-            nh (int): The upper index of the vector.
-        """
-
-    #    del v[nl-1:nh]
 
     def ivector(nl, nh):
         """
@@ -317,16 +313,16 @@ class bTools:
         v = (nh - nl + 1) * [0.0]
         return v
 
-    def proper_phi(phis: float, phi: float) -> float:
+    def proper_phi(phis, phi):
         """
         Convert a RF generic angle into its proper position according to phis.
 
         Args:
-        phis: A float representing the value of phis.
-        phi: A float representing the value of phi.
+            phis (float): A float representing the value of phis.
+            phi (float): A float representing the value of phi.
 
         Returns:
-        A float representing the proper position of phi.
+            A float representing the proper position of phi.
         """
         tmphis = phis
 
@@ -354,22 +350,22 @@ class bTools:
         float: the calculated RF phase angle phi_s
         """
         tmp = C * rho * Bdot / Vrf
-        print("phi_s")
-        print(C)
-        print(rho)
-        print(Bdot)
-        print(Vrf)
-        print(tmp)
-        print("end")
+        # print("phi_s")
+        # print(C)
+        # print(rho)
+        # print(Bdot)
+        # print(Vrf)
+        # print(tmp)
+        # print("end")
 
         if abs(tmp) > 1:
             return float("inf")
 
         if Vrf > 0.0:
-            print("if")
+            # print("if")
             return math.asin(tmp) if etas < 0 else bmath.pi - math.asin(tmp)
         else:
-            print("else")
+            # print("else")
             return (
                 2 * bmath.pi - math.asin(tmp) if etas < 0 else bmath.pi + math.asin(tmp)
             )
@@ -415,6 +411,15 @@ class bTools:
             return 2 * bmath.pi - tmphis
 
     def generic_phi2(phis, phi2):
+        """Computes the phi2 value
+
+        Args:
+            phis (float): current value of phis
+            phi2 (float): current value of phis2
+
+        Returns:
+            float: new value of phi2
+        """
         if phis >= 0 and phis < bmath.pi_2:
             return phi2
 
@@ -426,24 +431,6 @@ class bTools:
 
         if phis >= bmath.pi + bmath.pi_2 and phis <= (bmath.pi + bmath.pi):
             return 2 * bmath.pi - phi2
-
-        # def fnphi1(x,phis,fn,df):
-        """
-        Evaluate the function fn(x) and its derivative df(x) for the given x and phis.
-
-        Args:
-        x: A float representing the input value x.
-        phis: A float representing the value of phis.
-
-        Returns:
-        A tuple containing the evaluated values fn(x) and df(x).
-        """
-        # fn = math.cos(x) + math.cos(phis) + (x-(bmath.pi-phis)) * math.sin(phis)
-        # df = math.sin(phis)-math.sin(x)
-        # return fn, df
-
-    def nrerror():
-        raise ValueError("Maximum number of iterations exceeded.")
 
     def bktrtsafe(funcd, phis):
         """
@@ -502,6 +489,15 @@ class bTools:
         return float("inf")
 
     def fnphi1(x, phis):
+        """computes the function and derivative at x and phis
+
+        Args:
+            x (float): value to integrate over
+            phis (float): synchronous phase angle
+
+        Returns:
+            float, float: the value at x and phis and the derivative at x and phis
+        """
         fn = math.cos(x) + math.cos(phis) + (x - (math.pi - phis)) * math.sin(phis)
         df = math.sin(phis) - math.sin(x)
         return fn, df
@@ -559,9 +555,27 @@ class bTools:
         )
 
     def abkt_m(a, b, phis):
+        """computes the alpha bucket using a, b, and phis
+
+        Args:
+            a (float): start of interval
+            b (float): end of interval
+            phis (float): synchronous phase angle
+
+        Returns:
+            float: value of the alpha bucket
+        """
         return 16 * math.sqrt(abs(b / a)) * bTools.Alpha_bkt(phis)
 
     def Alpha_bkt(phis):
+        """computes the alpha bucket using the phase angle
+
+        Args:
+            phis (float): synchronous phase angle
+
+        Returns:
+            float: alpha bucket using gaussian
+        """
         phis = bTools.generic_phis(phis)
         phi2 = bTools.phi_2_bkt(phis)
         phi1 = bTools.phi_1_bkt(phis)
@@ -574,14 +588,34 @@ class bTools:
         )
 
     def fnphi1bun(x, phis, phi2):
+        """computes the function and derivative at x, phis, and phi2
+
+        Args:
+            x (float): value to integrate over
+            phis (float): synchronous phase angle
+            phi2 (float): phase angle
+
+        Returns:
+            float, float: the value at x and phis and the derivative at x and phis
+        """
         fn = math.cos(x) - math.cos(phi2) + (x - phi2) * math.sin(phis)
         df = math.sin(phis) - math.sin(x)
         return fn, df
 
     def phi_1_bun(phis, phi2):
+        """Determines where the phase angle is and computes the phase angle bunch value
+
+        Args:
+            phis (float): synchronous phase angle
+            phi2 (float): phase angle
+
+        Returns:
+            float: phase angle bunch value
+        """
         if phis >= 0 and phi2 < bmath.pi_2:
             if phi2 < phis or phi2 > (bmath.pi - phis):
-                return float("inf")
+                # return float("inf")
+                return 1
             return bTools.rtsafe_l_t(
                 bTools.fnphi1bun, (bmath.pi - phis), phis, phis, phi2
             )
@@ -590,7 +624,8 @@ class bTools:
             phis = bmath.pi - phis
             phi2 = bmath.pi - phi2
             if phi2 < phis or phi2 > (bmath.pi - phis):
-                return float("inf")
+                return 1
+                # return float("inf")
             return bmath.pi - bTools.rtsafe_l_t(
                 bTools.fnphi1bun, (-bmath.pi - phis), phis, phis, phi2
             )
@@ -599,7 +634,8 @@ class bTools:
             phis = phis - bmath.pi
             phi2 = phi2 - bmath.pi
             if phi2 < phis or phi2 > (bmath.pi - phis):
-                return float("inf")
+                # return float("inf")
+                return 1
             return bmath.pi + bTools.rtsafe_l_t(
                 bTools.fnphi1bun, (-bmath.pi - phis), phis, phis, phi2
             )
@@ -608,12 +644,22 @@ class bTools:
             phis = 2 * bmath.pi - phis
             phi2 = 2 * bmath.pi - phi2
             if phi2 < phis or phi2 > (bmath.pi - phis):
-                return float("inf")
+                # return float("inf")
+                return 1
             return 2 * bmath.pi - bTools.rtsafe_l_t(
                 bTools.fnphi1bun, (-bmath.pi - phis), phis, phis, phi2
             )
 
     def alpha_bun(phis, phi2):
+        """computes the generic phi2, phis and phi1 bunch to find the alpha bunch
+
+        Args:
+            phis (float): synchronous phase angle
+            phi2 (float): phase angle
+
+        Returns:
+            float : alpha bunch
+        """
         phi2 = bTools.generic_phi2(phis, phi2)
         phis = bTools.generic_phis(phis)
         phi1 = bTools.phi_1_bun(phis, phi2)
@@ -624,6 +670,15 @@ class bTools:
         )
 
     def phi_1_phi12(phi12, phis):
+        """Computes the temporary phase angle depending on the current phase angles
+
+        Args:
+            phi12 (float): phase angle
+            phis (float): synchronous phase angle
+
+        Returns:
+            float: returns the temporary value of the new phase angle
+        """
         if phis < bmath.epsilon:
             return -0.5 * phi12
         if phi12 < bmath.epsilon:
@@ -638,6 +693,15 @@ class bTools:
         return tmp
 
     def alpha_phi12(phi12, phis):
+        """computes the alpha phase angle
+
+        Args:
+            phi12 (float): phase angle
+            phis (float): synchronous phase angle
+
+        Returns:
+            float: the gaussian of the phase angles
+        """
         phis = bTools.generic_phis(phis)
         phi1 = bTools.phi_1_phi12(phi12, phis)
         phi2 = phi1 + phi12
@@ -648,12 +712,34 @@ class bTools:
         )
 
     def fbun(x, phi1, phi2, phis):
+        """bunch function
+
+        Args:
+            x (float): current x value
+            phi1 (float): phase angle 1
+            phi2 (float): phase angle 2
+            phis (float): synchronous phase angle
+        Returns:
+            float: bunch result
+        """
         y1 = x - phi1
         y2 = phi2 - x
         y3 = math.cos(x) - math.cos(phi2) + (x - phi2) * math.sin(phis)
         return math.sqrt(abs(y2 * y1 / y3))
 
     def fbuncd(phi2, alpha, phis, fn, df):
+        """Derivitive of the bunch function
+
+        Args:
+            phi2 (float): phase angle 2
+            alpha (float): alpha value
+            phis (float): synchronous phase angle
+            fn (function): function
+            df (float): derivative of the function
+
+        Returns:
+            float: derivative of bunch function using chebyshev
+        """
         fn = bTools.alpha_bun(phis, phi2) - alpha
         phi1 = bTools.phi_1_bun(phis, phi2)
         df = (
@@ -662,8 +748,17 @@ class bTools:
             * (math.sin(phi2) - math.sin(phis))
             * bTools.qchebyshev_t(bTools.fbun, phi1, phi2, phis)
         )
+        return fn, df
 
     def i_alpha_bun(alpha, phis):
+        """
+
+        Args:
+            alpha (float): alpha value
+            phis (float): synchronous phase angle
+        Returns:
+            float : synchronous phase angle or secant method approximation
+        """
         phis = bTools.generic_phis(phis)
         return (
             phis
@@ -672,12 +767,39 @@ class bTools:
         )
 
     def fnTbun(x, phi1, phi2, phis):
+        """
+
+        Args:
+            x (float): current x value on bunch/bucket plot
+            phi1 (float): first phase angle
+            phi2 (float): second phase angle
+            phis (float): synchronous phase angle
+
+        Returns:
+            float : returns the calculated value of the bunch
+        """
         y1 = x - phi1
         y2 = phi2 - x
+        # print(x)
+        # print(phi1)
+        # print(phi2)
+        # print(phis)
+        if phis == float("inf"):
+            phis = 1
         y3 = math.cos(x) - math.cos(phi2) + (x - phi2) * math.sin(phis)
+        y3 = 1
         return math.sqrt(abs(y2 * y1 / y3))
 
     def T_bun(phis, phi2):
+        """computes the bunch using the chebyshev approximation
+
+        Args:
+            phis (float): synchronous phase angle
+            phi2 (float): second phase angle
+
+        Returns:
+            float : chebyshev approximation of the bunch
+        """
         phi2 = bTools.generic_phi2(phis, phi2)
         phis = bTools.generic_phis(phis)
 
@@ -685,16 +807,31 @@ class bTools:
         p1bkt = bTools.phi_1_bkt(phis)
 
         # if (phi2>p2bkt || phi2<p1bkt) return HUGE_VAL; /* if outside bkt */
-
         if phi2 > p2bkt or phi2 < p1bkt:
             return 10e100
             # if outside bkt
         p2 = phi2 if phi2 > phis else (2 * phis - phi2)  # /* make sure p2>ps */
         phi1 = bTools.phi_1_bun(phis, p2)
+        # print("phi1: "+str(phi1))
         p1 = phi1
         return bTools.qchebyshev_t(bTools.fnTbun, p1, p2, phis)
 
     def fnT2rfbun(x, vrf, vn, n, theta, phis, phi1, phi2):
+        """computes the second rf bunch values
+
+        Args:
+            x (float): current x value on the plaot
+            vrf (float): rf voltage
+            vn (float): rf harmonic number
+            n (int): number of bunches
+            theta (float): angle value
+            phis (float): synchronous phase angle
+            phi1 (float): first phase angle
+            phi2 (float): secong phase angle
+
+        Returns:
+            float: calculated second rf bunch value
+        """
         y1 = x - phi1
         y2 = phi2 - x
         y3 = (
@@ -705,12 +842,37 @@ class bTools:
         return math.sqrt(abs(y2 * y1 / y3))
 
     def T_2rfbun(vrf, vn, n, theta, phis, phi1, phi2):
+        """Chebyshev approxmimation of the second rf bunch
+
+        Args:
+            vrf (float): rf voltage
+            vn (float): rf harmonic number
+            n (int): number of bunches
+            theta (float): angle value
+            phis (float): synchronous phase angle
+            phi1 (float): first phase angle
+            phi2 (float): secong phase angle
+
+        Returns:
+            float: second rf bunch value
+        """
         # /* make sure phi2>phi1 */
         return bTools.qchebyshev_7t(
             bTools.fnT2rfbun, vrf, vn, n, theta, phis, phi1, phi2
         )
 
     def phi_2_dW(phis, A, B, dW):
+        """computes the second phase angle using the wave derivative
+
+        Args:
+            phis (float): synchronous phase angle
+            A (float): value for A
+            B (float): value for B
+            dW (float): value for dW
+
+        Returns:
+            float: value for phase angle
+        """
         i = 1000
         N = 1000
         dphi = bmath.pi / N
@@ -738,6 +900,20 @@ class bTools:
 
     ## /lib/archive/a/BktBun.c
     def U2rf(x, A, v1, vn, n, theta, phis):
+        """Computes the value to use for the 2rfu graph
+
+        Args:
+            x (float): x value from plot
+            A (float): value of A
+            v1 (float): value of vrf
+            vn (float): value of vn
+            n (int): number of bunches
+            theta (float): the angle theta value
+            phis (float): synchronous phase angle
+
+        Returns:
+            float: 2rfu value
+        """
         U = np.sign(A) * (
             v1 * (math.cos(x) - math.cos(phis) + (x - phis) * math.sin(phis))
             + vn / n * (math.cos(n * (x + theta)) - math.cos(n * (phis + theta)))
@@ -748,7 +924,7 @@ class bTools:
     def Phi_s(etas, C, rho, bdot, vrfk):
         # print(etas, C, rho, bdot, vrfk)
         tmp = C * rho * bdot / vrfk
-        print(tmp)
+        # print(tmp)
         if abs(tmp) > 1:
             print("Error: |C*rho*Bdot/Vrf| > 1")
             return 0
@@ -1497,17 +1673,9 @@ class bTools:
             p[2 * i + 1] = -p[4 * (N + k) - (2 * i + 1)]
 
     def Draw2rfSep(n, wphase, theta, phis, A, v1, vn, B):
-        # double v1,vn,n,theta,lolim,uplim,dx,*p,phis,x,h2,w,phi2;
-        # double *ymax,hx,*y,*phix2,max,bkt,A,B;
         N = 540
         k = 1
         nn = 0
-        # int i,N=540,k=1,nn,j,*yp,ib,ie,ibe;
-        # char res[512];
-        # char graph[30],element[30],sep[128],*code;
-        # code = cvector(0,4*(n+1));
-        # strcpy(code," ");
-
         N = N * n + 1
         dx = wphase / (N - 1)
         lolim = -pi
@@ -1515,19 +1683,20 @@ class bTools:
 
         theta = theta / bmath.radeg
         phis = phis / bmath.radeg
-        # lolim += phis		 shifting the region
-        # uplim += phis
 
-        phix2 = np.zeros(n)
-        ymax = np.zeros(n)
-        yp = np.zeros(n)
-        y = np.zeros(N)
+        phix2 = np.zeros(int(n))
+        ymax = np.zeros(int(n))
+        yp = np.zeros(int(n))
+        y = np.zeros(int(N))
         y[0] = bTools.U2rf(lolim - dx, A, v1, vn, n, theta, phis)
+        all_Pdata = []
 
-        for i in range(0, N):
+        for i in range(1, N):  # find the U curve
             y[i] = bTools.U2rf(lolim + dx * (i - 1), A, v1, vn, n, theta, phis)
 
-        for i in range(0, N):  # find all local max
+        # print(N)
+        for i in range(0, N - 1):  # find all local max
+            nn = 0
             if (y[i] >= y[i - 1]) and (y[i] > y[i + 1]):
                 phix2[nn] = lolim + (i - 1.0) * dx
                 ymax[nn] = y[i]
@@ -1536,28 +1705,21 @@ class bTools:
 
         nn -= 1  # /* nn=n-1 */
         max = ymax[0]
-        for j in range(0, nn):
+        for j in range(1, nn + 1):
             if ymax[j] > max:
                 max = ymax[j]
 
         j = 0
         if (
-            ymax[0] == max and nn != 0 and y[1] < max and y[N] < max
+            ymax[0] == max and nn != 0 and y[1] < max and y[N - 1] < max
         ):  # /* don't miss a well */
             j = 1
 
-        if ymax[nn] == max and nn != 0 and y[1] < max and y[N] < max:
+        if ymax[nn] == max and nn != 0 and y[1] < max and y[N - 1] < max:
             nn -= 1
 
-        # /* loop over all max except...  */
-        for j in range(0, nn):  # /* see above if */
-            # /*	printf("hmm nn=%d i=%d\n",nn,j); */
-            # /*	printf ("NN= %d J= %d\n",nn,j);*/
-            # sprintf(sep, "%s%d",element,j);
-            # strcat(code," ");strcat(code,sep);strcat(code," ");
-
-            # p = dvector (0,4*(N+k));
-            p = np.zeros(0, 4 * (N + k))
+        p = [0] * int(4 * (N + k))
+        for ji in range(j, nn):  # /* see above if */
             for i in range(0, N + k):  # /* setting zero line*/
                 p[2 * i] = (
                     lolim + dx * (i - 1)
@@ -1570,14 +1732,14 @@ class bTools:
             # ie= (ymax[j]<y[N])? yp[nn] : (N+k);
 
             for ibe in range(0, j):
-                if ymax[j] < ymax[ibe]:
+                if ymax[ji] < ymax[ibe]:
                     ib = yp[ibe]
 
-            for ibe in range(j, nn, -1):
-                if ymax[j] <= ymax[ibe]:
+            for ibe in range(ji, nn, -1):
+                if ymax[ji] <= ymax[ibe]:
                     ie = yp[ibe]
 
-            phi2 = phix2[j]
+            phi2 = phix2[ji]
             h2 = bTools.U2rf(phi2, A, v1, vn, n, theta, phis)
             # /* p[2*(N+k)] fake*/
             for i in range(ib, ie):
@@ -1587,7 +1749,7 @@ class bTools:
                 w = h2 - hx
                 if w > 0:
                     p[2 * i + 1] = math.sqrt(abs(w * 2 * B / A))
-            p[2 * yp[j] + 1] = 0
+            p[2 * int(yp[j]) + 1] = 0
 
             # /* need to clean up the curve a bit */
             # /* from left */
@@ -1608,7 +1770,7 @@ class bTools:
 
             ib = 0
             bkt = 0  # /* reuse variable ib */
-            for i in range(0, N):
+            for i in range(1, N + 1):
                 if p[2 * (i - 1) + 1] == 0 and p[2 * i + 1] != 0:
                     ib += 1
                     # /*printf ("non-empty bkt begin = %d \n",i);*/
@@ -1622,6 +1784,15 @@ class bTools:
             for i in range(N + k, 2 * (N + k)):
                 p[2 * i] = p[4 * (N + k) - 2 - 2 * i]
                 p[2 * i + 1] = -p[4 * (N + k) - (2 * i + 1)]
+
+            # all_Pdata.append(p)
+        # print(all_Pdata)
+        # print(phix2)
+        # print(ymax)
+        # print(yp)
+        # print(y)
+        # return all_Pdata
+        return p, y
 
     def Find2rfSep(n, wphase, theta, phis, A, v1, vn):
         # double v1,vn,n,theta,lolim,uplim,dx,*p,phis,x,h2,w,phi2,hx,*y,*phix2;
@@ -1675,7 +1846,7 @@ class bTools:
         for i in range(1, N):  # /* find the U curve */
             y[i] = bTools.U2rf(lolim + dx * (i - 1), A, v1, vn, n, theta, phis)
 
-        for i in range(1, N):  # /* find all local max */
+        for i in range(1, N - 1):  # /* find all local max */
             if (y[i] >= y[i - 1]) and (y[i] > y[i + 1]):
                 phix2[nn] = lolim + (i - 1.0) * dx
                 ymax[nn] = y[i]
@@ -1756,10 +1927,9 @@ class bTools:
                 if p[2 * i + 1] != 0 and p[2 * (i + 1) + 1] == 0:
                     bkt *= 2 * dx * math.sqrt(abs(2 * B / A)) / nu
                     bkt = 0
+        return y[0]
 
     def Draw2rfHcontour(theta, phis, phi2, n, wphase, A, v1, vn, B):
-        # double v1,vn,n,theta,lolim,uplim,dx,*p,phis,x,h2,y,phi2,hx,A,B;
-        # int i,N=540,k=1;
         N = 540
         k = 1
 
@@ -1769,7 +1939,7 @@ class bTools:
 
         N = N * n + 1
         dx = wphase / (N - 1)
-        p = np.zeros(4 * (N + k))
+        p = np.zeros(4 * (int(N) + k))
         lolim = -bmath.pi
         uplim = -bmath.pi
 
@@ -1805,6 +1975,7 @@ class bTools:
         for i in range(N + k, 2 * (N + k)):
             p[2 * i] = p[4 * (N + k) - 2 - 2 * i]
             p[2 * i + 1] = -p[4 * (N + k) - (2 * i + 1)]
+        return p
 
     def BUN2rf(theta, phis, phi2, n, wphase, A, vrf, vn, B, Nu):
         N = 540
