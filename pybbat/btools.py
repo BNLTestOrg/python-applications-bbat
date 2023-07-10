@@ -649,6 +649,7 @@ class bTools:
             return 2 * bmath.pi - bTools.rtsafe_l_t(
                 bTools.fnphi1bun, (-bmath.pi - phis), phis, phis, phi2
             )
+        return 1
 
     def alpha_bun(phis, phi2):
         """computes the generic phi2, phis and phi1 bunch to find the alpha bunch
@@ -727,7 +728,7 @@ class bTools:
         y3 = math.cos(x) - math.cos(phi2) + (x - phi2) * math.sin(phis)
         return math.sqrt(abs(y2 * y1 / y3))
 
-    def fbuncd(phi2, alpha, phis, fn, df):
+    def fbuncd(phi2, alpha, phis):
         """Derivitive of the bunch function
 
         Args:
@@ -1332,11 +1333,12 @@ class bTools:
         #    return TCL_ERROR;}
 
     def DrawBun(phis, phi1, phi2, A, B):
-        N = 100
+        N = 200
         uplim = phi2
         lolim = phi1
         dx = (uplim - lolim) / (N - 1)
-        p = np.zeros(N)
+        p = np.zeros(4 * N)
+
         for i in range(0, N):
             p[2 * i] = lolim + dx * i
             p[2 * i + 1] = math.sqrt(
@@ -1353,10 +1355,10 @@ class bTools:
             )
             p[2 * i] *= bmath.radeg
 
-        for i in range(N + 1, N * 2):
+        for i in range(N, 2 * N):
             p[2 * i] = p[4 * N - 2 - 2 * i]
             p[2 * i + 1] = -p[4 * N - (2 * i + 1)]
-
+        return p
         # if (Blt_GraphElement(interp, ".gbkt", "BUN", 4*N, p) != TCL_OK) {
         # Tcl_AppendResult(interp, "wrong # args: \"", argv[0]," ps",
 
@@ -1383,92 +1385,13 @@ class bTools:
         dymin = -dymax
 
         yclip = 0.2 * wmax
-
+        p = np.zeros(4 * N)
         if abs(phis) < bmath.epsilon:
             uplim = bmath.pi
             lolim = -bmath.pi
             dx = (uplim - lolim) / (N - 1)
 
-            p = np.zeros(4 * N)
-            for i in range(0, N):
-                p[2 * i] = uplim - dx * i
-                p[2 * i + 1] = math.sqrt(
-                    abs(
-                        -2
-                        * B
-                        / A
-                        * (
-                            math.cos(p[2 * i])
-                            - math.cos(phi2)
-                            + (p[2 * i] - phi2) * math.sin(phis)
-                        )
-                    )
-                )
-                p[2 * i] *= bmath.radeg
-
-            for i in range(N + 1, N * 2):
-                p[2 * i] = p[4 * N - 2 - 2 * i]
-                p[2 * i + 1] = -p[4 * N - (2 * i + 1)]
-
-            # if (Blt_GraphElement(interp, ".gbkt", "BKT", 4*N, p) != TCL_OK) {
-            # Tcl_AppendResult(interp, "wrong # args: \"", argv[0]," ps",
-            #        (char*) NULL);
-            # return TCL_ERROR;}
-            # /*	Tcl_VarEval (interp,".gbkt element show BKT", (char *) NULL);*/
-            # free_dvector(p,0,4*N);
-            # return TCL_OK;
-
-        if abs(phis - bmath.pi) < bmath.epsilon:
-            uplim = 2 * bmath.pi
-            lolim = 0
-            dx = (uplim - lolim) / (N - 1)
-
-            p = np.zeros(4 * N)
-            for i in range(0, N):
-                p[2 * i] = uplim - dx * i
-                p[2 * i + 1] = math.sqrt(
-                    abs(
-                        -2
-                        * B
-                        / A
-                        * (
-                            math.cos(p[2 * i])
-                            - math.cos(phi2)
-                            + (p[2 * i] - phi2) * math.sin(phis)
-                        )
-                    )
-                )
-            for i in range(N + 1, N * 2):
-                p[2 * i] = p[4 * N - 2 - 2 * i]
-                p[2 * i + 1] = p[4 * N - (2 * i + 1)]
-
-            # if (Blt_GraphElement(interp, ".gbkt", "BKT", 4*N, p) != TCL_OK) {
-            # Tcl_AppendResult(interp, "wrong # args: \"", argv[0]," ps",
-            #        (char*) NULL);
-            # return TCL_ERROR;}
-            # /*    Tcl_VarEval (interp,".gbkt element show BKT", (char *) NULL);*/
-            # free_dvector(p,0,4*N);
-            # return TCL_OK;
-
-        if phi2 > phi1:
-            uplim = 2 * pi
-            lolim = phi1
-            dx = (uplim - lolim) / (N - 1)
-            for i in range(0, N):
-                x = uplim - dx * i
-                y = math.sqrt(
-                    abs(
-                        -2
-                        * B
-                        / A
-                        * (math.cos(x) - math.cos(phi2) + (x - phi2) * math.sin(phis))
-                    )
-                )
-                if y < yclip:
-                    uplim = x
-                    break
-            dx = (uplim - lolim) / (N - 1)
-            p = np.zeros(N * 4)
+            # p = np.zeros(4 * N)
             for i in range(0, N):
                 p[2 * i] = uplim - dx * i
                 p[2 * i + 1] = math.sqrt(
@@ -1489,13 +1412,68 @@ class bTools:
                 p[2 * i] = p[4 * N - 2 - 2 * i]
                 p[2 * i + 1] = -p[4 * N - (2 * i + 1)]
 
-            # if (Blt_GraphElement(interp, ".gbkt", "BKT", 4*N, p) != TCL_OK) {
-            # Tcl_AppendResult(interp, "wrong # args: \"", argv[0]," ps",
-            #        (char*) NULL);
-            # return TCL_ERROR;}
-            # /*    Tcl_VarEval (interp,".gbkt element show BKT", (char *) NULL);*/
-            # free_dvector(p,0,4*N);
-            # return TCL_OK;
+        if abs(phis - bmath.pi) < bmath.epsilon:
+            uplim = 2 * bmath.pi
+            lolim = 0
+            dx = (uplim - lolim) / (N - 1)
+
+            # p = np.zeros(4 * N)
+            for i in range(0, N):
+                p[2 * i] = uplim - dx * i
+                p[2 * i + 1] = math.sqrt(
+                    abs(
+                        -2
+                        * B
+                        / A
+                        * (
+                            math.cos(p[2 * i])
+                            - math.cos(phi2)
+                            + (p[2 * i] - phi2) * math.sin(phis)
+                        )
+                    )
+                )
+            for i in range(N, N * 2):
+                p[2 * i] = p[4 * N - 2 - 2 * i]
+                p[2 * i + 1] = p[4 * N - (2 * i + 1)]
+
+        if phi2 > phi1:
+            uplim = 2 * pi
+            lolim = phi1
+            dx = (uplim - lolim) / (N - 1)
+            for i in range(0, N):
+                x = uplim - dx * i
+                y = math.sqrt(
+                    abs(
+                        -2
+                        * B
+                        / A
+                        * (math.cos(x) - math.cos(phi2) + (x - phi2) * math.sin(phis))
+                    )
+                )
+                if y < yclip:
+                    uplim = x
+                    break
+            dx = (uplim - lolim) / (N - 1)
+            # p = np.zeros(N * 4)
+            for i in range(0, N):
+                p[2 * i] = uplim - dx * i
+                p[2 * i + 1] = math.sqrt(
+                    abs(
+                        -2
+                        * B
+                        / A
+                        * (
+                            math.cos(p[2 * i])
+                            - math.cos(phi2)
+                            + (p[2 * i] - phi2) * math.sin(phis)
+                        )
+                    )
+                )
+                p[2 * i] *= bmath.radeg
+
+            for i in range(N, N * 2):
+                p[2 * i] = p[4 * N - 2 - 2 * i]
+                p[2 * i + 1] = -p[4 * N - (2 * i + 1)]
         else:
             lolim = -2 * pi
             uplim = phi2  # /* from phi2 down */
@@ -1516,7 +1494,7 @@ class bTools:
                     uplim = phi1
                     break
             dx = (uplim - lolim) / (N - 1)
-            p = np.zeros(4 * N)
+            # p = np.zeros(4 * N)
             for i in range(0, N):
                 p[2 * i] = lolim + dx * i
                 p[2 * i + 1] = math.sqrt(
@@ -1536,14 +1514,7 @@ class bTools:
             for i in range(N + 1, N * 2):
                 p[2 * i] = p[4 * N - 2 - 2 * i]
                 p[2 * i + 1] = -p[4 * N - (2 * i + 1)]
-
-            # if (Blt_GraphElement(interp, ".gbkt", "BKT", 4*N, p) != TCL_OK) {
-            # Tcl_AppendResult(interp, "wrong # args: \"", argv[0]," ps",
-            #        (char*) NULL);
-            # return TCL_ERROR;}
-            # /*    Tcl_VarEval (interp,".gbkt element show BKT", (char *) NULL);*/
-            # free_dvector(p,0,4*N);
-            # return TCL_OK;
+        return p
 
     def Draw2rf(v1, vn, n, theta, wphase):
         N = 540
@@ -1675,7 +1646,6 @@ class bTools:
     def Draw2rfSep(n, wphase, theta, phis, A, v1, vn, B):
         N = 540
         k = 1
-        nn = 0
         N = N * n + 1
         dx = wphase / (N - 1)
         lolim = -pi
@@ -1694,8 +1664,7 @@ class bTools:
         for i in range(1, N):  # find the U curve
             y[i] = bTools.U2rf(lolim + dx * (i - 1), A, v1, vn, n, theta, phis)
 
-        # print(N)
-        for i in range(0, N - 1):  # find all local max
+        for i in range(1, N - 1):  # find all local max
             nn = 0
             if (y[i] >= y[i - 1]) and (y[i] > y[i + 1]):
                 phix2[nn] = lolim + (i - 1.0) * dx
@@ -1704,18 +1673,18 @@ class bTools:
                 nn += 1
 
         nn -= 1  # /* nn=n-1 */
-        max = ymax[0]
+        maxy = ymax[0]
         for j in range(1, nn + 1):
-            if ymax[j] > max:
-                max = ymax[j]
+            if ymax[j] > maxy:
+                maxy = ymax[j]
 
         j = 0
         if (
-            ymax[0] == max and nn != 0 and y[1] < max and y[N - 1] < max
+            ymax[0] == maxy and nn != 0 and y[1] < maxy and y[N - 1] < maxy
         ):  # /* don't miss a well */
             j = 1
 
-        if ymax[nn] == max and nn != 0 and y[1] < max and y[N - 1] < max:
+        if ymax[nn] == maxy and nn != 0 and y[1] < maxy and y[N - 1] < maxy:
             nn -= 1
 
         p = [0] * int(4 * (N + k))
@@ -1787,12 +1756,12 @@ class bTools:
 
             # all_Pdata.append(p)
         # print(all_Pdata)
-        # print(phix2)
-        # print(ymax)
-        # print(yp)
-        # print(y)
+        print(phix2)
+        print(ymax)
+        print(yp)
+        print(y)
         # return all_Pdata
-        return p, y
+        return p
 
     def Find2rfSep(n, wphase, theta, phis, A, v1, vn):
         # double v1,vn,n,theta,lolim,uplim,dx,*p,phis,x,h2,w,phi2,hx,*y,*phix2;
