@@ -2,9 +2,17 @@ from cmath import pi
 import math
 from pybbat.bmath import bmath
 import numpy as np
+from qtpy.QtWidgets import QMessageBox
 
 
 class bTools:
+    def errorBox(errMsg):
+        popup = QMessageBox()
+        popup.setWindowTitle("Error")
+        popup.setText(errMsg)
+        popup.setIcon(QMessageBox.Warning)
+        popup.setStandardButtons(QMessageBox.Close)
+        popup.exec_()
 
     ###
     # accmath
@@ -350,22 +358,13 @@ class bTools:
         float: the calculated RF phase angle phi_s
         """
         tmp = C * rho * Bdot / Vrf
-        # print("phi_s")
-        # print(C)
-        # print(rho)
-        # print(Bdot)
-        # print(Vrf)
-        # print(tmp)
-        # print("end")
 
         if abs(tmp) > 1:
             return float("inf")
 
         if Vrf > 0.0:
-            # print("if")
             return math.asin(tmp) if etas < 0 else bmath.pi - math.asin(tmp)
         else:
-            # print("else")
             return (
                 2 * bmath.pi - math.asin(tmp) if etas < 0 else bmath.pi + math.asin(tmp)
             )
@@ -781,10 +780,7 @@ class bTools:
         """
         y1 = x - phi1
         y2 = phi2 - x
-        # print(x)
-        # print(phi1)
-        # print(phi2)
-        # print(phis)
+
         if phis == float("inf"):
             phis = 1
         y3 = math.cos(x) - math.cos(phi2) + (x - phi2) * math.sin(phis)
@@ -813,7 +809,6 @@ class bTools:
             # if outside bkt
         p2 = phi2 if phi2 > phis else (2 * phis - phi2)  # /* make sure p2>ps */
         phi1 = bTools.phi_1_bun(phis, p2)
-        # print("phi1: "+str(phi1))
         p1 = phi1
         return bTools.qchebyshev_t(bTools.fnTbun, p1, p2, phis)
 
@@ -887,7 +882,6 @@ class bTools:
 
         dH = 0.5 * A * dW * dW
         phi = phi2
-        # /*printf("phis=%lf A=%lf B=%lf dW=%lf phi1=%lf dphi=%lf\n",phis,A,B,dW,phi1,dphi);*/
         for i in range(0, N):
             phi -= dphi
             dh = (
@@ -923,109 +917,76 @@ class bTools:
         return U
 
     def Phi_s(etas, C, rho, bdot, vrfk):
-        # print(etas, C, rho, bdot, vrfk)
         tmp = C * rho * bdot / vrfk
-        # print(tmp)
         if abs(tmp) > 1:
-            print("Error: |C*rho*Bdot/Vrf| > 1")
-            return 0
+            bTools.errorBox("Error: |C*rho*Bdot/Vrf| > 1")
+            return 1
 
         if abs(etas) < bmath.epsilon:
-            print(
+            bTools.errorBox(
                 "Error: slip factor |etas| < 10^-6, in the transition regime, stay away from this region"
             )
 
         if vrfk > 0.0:
             out = math.asin(tmp) if etas < 0 else math.pi - math.asin(tmp)
             return out
-            # Tcl_PrintDouble(interp, out, res)
-            # Tcl_AppendResult(interp, res, None)
         else:
             out = 2 * math.pi - math.asin(tmp) if etas < 0 else math.pi + math.asin(tmp)
             return out
-            # Tcl_PrintDouble(interp, out, res)
-            # Tcl_AppendResult(interp, res, None)
-            # return TCL_OK
 
     def Phi_2_bkt(phis, etas, C, rho, bdot, vrf):
         if phis >= 0 and phis < bmath.pi_2:
             out = bmath.pi - phis
             return out
-            # Tcl_PrintDouble(interp,out,res)
-            # Tcl_AppendResult(interp, res, (char*) NULL)
 
         if phis >= bmath.pi_2 and phis <= bmath.pi:
             out = bmath.pi - phis
             return out
-            # Tcl_PrintDouble(interp,out,res)
-            # Tcl_AppendResult(interp, res, (char*) NULL)
-            # return TCL_OK
 
         if phis >= bmath.pi and phis < (bmath.pi + bmath.pi_2):
             out = 3 * bmath.pi - phis
             return out
-            # Tcl_PrintDouble(interp,out,res)
-            # Tcl_AppendResult(interp, res, (char*) NULL)
-            # return TCL_OK
 
         if phis >= bmath.pi + bmath.pi_2 and phis <= (bmath.pi + bmath.pi):
             out = 3 * bmath.pi - phis
             return out
-            # Tcl_PrintDouble(interp,out,res)
-            # Tcl_AppendResult(interp, res, (char*) NULL)
-            # return TCL_OK
 
     def Phi_1_bkt(phis, etas, C, rho, bdot, vrf):
         out = bTools.bktrtsafe(bTools.fnphi1, phis)
 
         if abs(out - float("inf")) < bmath.epsilon:
-            print("Error: MAXIT is too small in Phi_1_bkt.c")
+            bTools.errorBox("Error: MAXIT is too small in Phi_1_bkt.c")
 
         if phis >= 0 and phis < bmath.pi_2:
             out = bTools.bktrtsafe(bTools.fnphi1, phis)
-        #    Tcl_PrintDouble(interp,out,res)
-        #    Tcl_AppendResult(interp, res, (char*) NULL)
-        #    return TCL_OK
 
         if phis >= bmath.pi_2 and phis <= bmath.pi:
             phis = bmath.pi - phis
             out = bTools.bktrtsafe(bTools.fnphi1, phis)
             out = bmath.pi - out
-        #    Tcl_PrintDouble(interp,out,res)
-        #    Tcl_AppendResult(interp, res, (char*) NULL)
-        #    return TCL_OK
 
         if phis >= bmath.pi and phis < (bmath.pi + bmath.pi_2):
             phis = phis - bmath.pi
             out = bTools.bktrtsafe(bTools.fnphi1, phis)
             out = bmath.pi + out
-        #    Tcl_PrintDouble(interp,out,res)
-        #    Tcl_AppendResult(interp, res, (char*) NULL)
-        #    return TCL_OK
 
         if phis >= (bmath.pi + bmath.pi_2) and phis <= (bmath.pi + bmath.pi):
             phis = 2 * bmath.pi - phis
             out = bTools.bktrtsafe(bTools.fnphi1, phis)
             out = 2 * bmath.pi - out
-        #    Tcl_PrintDouble(interp,out,res)
-        #    Tcl_AppendResult(interp, res, (char*) NULL)
-        #    return TCL_OK
 
     def alpha_bkt(phis, eta, C, rho, bdot, vrf):
         phis = bTools.generic_phis(phis)
         phi2 = bTools.phi_2_bkt(phis)
         phi1 = bTools.phi_1_bkt(phis)
         if phi1 == float("inf"):
-            print("Error: wrong in phi_1_bkt.c")
+            bTools.errorBox("Error: wrong in phi_1_bkt.c")
 
         out = (
             0.125
             * bmath.ROOT2
             * bTools.qguass_1t(bTools.fnalpha, phi1, phi2, phis, phi2)
         )
-        # Tcl_PrintDouble(interp,out,res)
-        # Tcl_AppendResult(interp, res, (char*) NULL)
-        # return TCL_OK
 
     def generate_bkt(phis, A, B):
         i = 200
@@ -1044,10 +1005,8 @@ class bTools:
         )
         wmax = yo
         wmin = -yo
-
         dymax = 1.2 * yo
         dymin = -dymax
-
         yclip = 0.2 * wmax
 
         if abs(phis) < bmath.epsilon:
@@ -1055,9 +1014,6 @@ class bTools:
             lowlim = -bmath.pi
             dx = (uplim - lowlim) / (N - 1)
 
-            # fp=fopen(".gbkt.dat","w")
-            # p = dvector(1,2*N)
-            # w = dvector(1,2*N)
             p = []
             w = []
             for i in range(0, N):
@@ -1074,27 +1030,16 @@ class bTools:
                         )
                     )
                 )
-                # fprintf(fp,"%lf %lf\n",p[i]*radeg,w[i])
-                # /*	printf("%lf %lf\n",p[i]*radeg,w[i]);*/
 
             for i in range(N + 1, N * 2):
                 p[i] = p[2 * N + 1 - i]
                 w[i] = -w[2 * N + 1 - i]
-                # fprintf(fp,"%lf %lf\n",p[i]*bmath.radeg,w[i])
-
-            # fclose (fp)
-            # free_dvector(p,1,2*N)
-            # free_dvector(w,1,2*N)
-            # return TCL_OK
 
         if abs(phis - bmath.pi) < bmath.epsilon:
             uplim = 2 * bmath.pi
             lolim = 0
             dx = (uplim - lolim) / (N - 1)
 
-            # fp=fopen(".gbkt.dat","w")
-            # p = dvector(1,2*N)
-            # w = dvector(1,2*N)
             p = []
             w = []
             for i in range(0, N):
@@ -1111,13 +1056,10 @@ class bTools:
                         )
                     )
                 )
-                # fprintf(fp,"%lf %lf\n",p[i]*bmath.radeg,w[i])
-                # /*	printf("%lf %lf\n",p[i]*radeg,w[i]);*/
 
             for i in range(N + 1, N * 2):
                 p[i] = p[2 * N + 1 - i]
                 w[i] = -w[2 * N + 1 - i]
-                # fprintf(fp,"%lf %lf\n",p[i]*bmath.radeg,w[i])
 
         if phi2 > phi1:
             uplim = 2 * bmath.pi
@@ -1137,9 +1079,6 @@ class bTools:
                     uplim = x
                     break
             dx = (uplim - lolim) / (N - 1)
-            # fp=fopen(".gbkt.dat","w")
-            # p = dvector(1,2*N)
-            # w = dvector(1,2*N)
             p = []
             w = []
             for i in range(0, N):
@@ -1158,13 +1097,9 @@ class bTools:
                         )
                     )
                 )
-                # fprintf(fp,"%lf %lf\n",p[i]*bmath.radeg,w[i])
-                # /*	printf("%lf %lf\n",p[i]*bmath.radeg,w[i]);*/
-
             for i in range(N + 1, N * 2):
                 p[i] = p[2 * N + 1 - i]
                 w[i] = -w[2 * N + 1 - i]
-                # fprintf(fp,"%lf %lf\n",p[i]*bmath.radeg,w[i])
         else:
             lolim = -2 * bmath.pi
             uplim = phi2
@@ -1185,12 +1120,8 @@ class bTools:
                     uplim = phi1
                     break
 
-            # /*	printf("%lf %lf\n",lolim,uplim);*/
             dx = (uplim - lolim) / (N - 1)
 
-            # fp=fopen(".gbkt.dat","w")
-            # p = dvector(1,2*N)
-            # w = dvector(1,2*N)
             p = []
             w = []
 
@@ -1210,13 +1141,10 @@ class bTools:
                         )
                     )
                 )
-                # fprintf(fp,"%lf %lf\n",p[i]*radeg,w[i])
-                # /*	printf("%lf %lf\n",p[i]*radeg,w[i]);*/
 
             for i in range(N + 1, N * 2):
                 p[i] = p[2 * N + 1 - i]
                 w[i] = -w[2 * N + 1 - i]
-                # fprintf(fp,"%lf %lf\n",p[i]*radeg,w[i])
 
     def Generate_U_bkt(phis):
         i = 361
@@ -1224,13 +1152,10 @@ class bTools:
         dx = 4 * bmath.pi / (N - 1)
         lolim = -2 * bmath.pi
         uplim = 2 * bmath.pi
-        # fp = fopen(".gUbkt.dat","w")
         eta = -1 if phis < bmath.pi_2 else 1
         for i in range(0, N):
             x = lolim + dx * i
             y = math.cos(x) - math.cos(phis) + (x - phis) * math.sin(phis)
-            # fprintf(fp,"%lf %lf\n",x*radeg,y*eta);
-        # close file
 
     def Generate_Vrf_bkt(Vrf, phis):
         i = 361
@@ -1239,37 +1164,27 @@ class bTools:
         dx = 4 * bmath.pi / (N - 1)
         lolim = -2 * bmath.pi
         uplim = 2 * bmath.pi
-        # fp = fopen (".gVrfbkt.dat","w");
         eta = -1 if phis < bmath.pi_2 else 1
         for i in range(0, N):
             x = lolim + dx * i
             y = amp * (bmath.sin(x))
-            # fprintf(fp,"%lf %lf\n",x*radeg,y);
-        # fclose(fp);
 
     def Alpha_bun_phi12(phi12, phis):
-        # double phi1,phi2,out,phis,phi12,phi12bkt;
         phi2 = bTools.phi_2_bkt(phis)
         phi1 = bTools.phi_1_bkt(phis)
         phi12bkt = abs(phi2 - phi1)
         phi12 = abs(phi12)
         if phi12bkt < phi12:
-            print("Error: Bunch length is greater than bucket length")
+            bTools.errorBox("Error: Bunch length is greater than bucket length")
         out = bTools.alpha_phi12(phi12, phis)
         return out
 
     def i_Alpha_bun(abun, phis):
-        # double phi1,phi2,out,phis,phi12,phi12bkt,abun,abkt;
         abkt = bTools.Alpha_bkt(phis)
         if abun > abkt:
-            print("Error: Bkt is smaller than bunch")
-
+            bTools.errorBox("Error: Bkt is smaller than bunch")
         phis = bTools.generic_phis(phis)
-        # this is also not defined
         out = bTools.i_alpha_bun(abun, phis)
-        # Tcl_PrintDouble(interp,out,res);
-        # Tcl_AppendResult(interp, res, (char*) NULL);
-        # return TCL_OK;
         return out
 
     def Phi_1_bun(phis, phi2):
@@ -1314,7 +1229,6 @@ class bTools:
                     )
                 )
             )
-            # fprintf(fp,"%lf %lf\n",p[i]*radeg,w[i]);
 
     def Period_bun(phis, phi2, A, B):
         out = math.sqrt(abs(2.0 / A / B)) * bTools.T_bun(phis, phi2)
@@ -1328,9 +1242,6 @@ class bTools:
             p[2 * i] = dx * i
             p[2 * i + 1] = a * math.sin(p[2 * i])
             p[2 * i] = p[2 * i] * 180 / bmath.pi
-        # if (Blt_GraphElement(interp, ".gbkt", "BUN", 2*N, p) != TCL_OK) {
-        #    Tcl_AppendResult(interp, "wrong # args: \"", argv[0]," ps", (char*) NULL);
-        #    return TCL_ERROR;}
 
     def DrawBun(phis, phi1, phi2, A, B):
         N = 200
@@ -1358,12 +1269,8 @@ class bTools:
         for i in range(N, 2 * N):
             p[2 * i] = p[4 * N - 2 - 2 * i]
             p[2 * i + 1] = -p[4 * N - (2 * i + 1)]
-        return p
-        # if (Blt_GraphElement(interp, ".gbkt", "BUN", 4*N, p) != TCL_OK) {
-        # Tcl_AppendResult(interp, "wrong # args: \"", argv[0]," ps",
 
-    #       (char*) NULL);
-    # return TCL_ERROR;}
+        return p
 
     def DrawBkt(phis, A, B):
         N = 200
@@ -1391,7 +1298,7 @@ class bTools:
             lolim = -bmath.pi
             dx = (uplim - lolim) / (N - 1)
 
-            # p = np.zeros(4 * N)
+            p = np.zeros(4 * N)
             for i in range(0, N):
                 p[2 * i] = uplim - dx * i
                 p[2 * i + 1] = math.sqrt(
@@ -1417,7 +1324,7 @@ class bTools:
             lolim = 0
             dx = (uplim - lolim) / (N - 1)
 
-            # p = np.zeros(4 * N)
+            p = np.zeros(4 * N)
             for i in range(0, N):
                 p[2 * i] = uplim - dx * i
                 p[2 * i + 1] = math.sqrt(
@@ -1454,7 +1361,7 @@ class bTools:
                     uplim = x
                     break
             dx = (uplim - lolim) / (N - 1)
-            # p = np.zeros(N * 4)
+            p = np.zeros(N * 4)
             for i in range(0, N):
                 p[2 * i] = uplim - dx * i
                 p[2 * i + 1] = math.sqrt(
@@ -1494,7 +1401,7 @@ class bTools:
                     uplim = phi1
                     break
             dx = (uplim - lolim) / (N - 1)
-            # p = np.zeros(4 * N)
+            p = np.zeros(4 * N)
             for i in range(0, N):
                 p[2 * i] = lolim + dx * i
                 p[2 * i + 1] = math.sqrt(
@@ -1511,7 +1418,7 @@ class bTools:
                 )
                 p[2 * i] *= bmath.radeg
 
-            for i in range(N + 1, N * 2):
+            for i in range(N, N * 2):
                 p[2 * i] = p[4 * N - 2 - 2 * i]
                 p[2 * i + 1] = -p[4 * N - (2 * i + 1)]
         return p
@@ -1532,10 +1439,6 @@ class bTools:
             )
             p[2 * i] *= bmath.radeg
         return p
-        # if (Blt_GraphElement(interp, graph, element, 2*N, p) != TCL_OK) {
-        # Tcl_AppendResult(interp, "wrong # args: \"", argv[0],"graph element v1....",(char*) NULL);
-        # return TCL_ERROR;}
-        # free_dvector(p,0,2*N);
 
     def Draw2rfU(A, B, v1, vn, n, theta, phis, wphase):
         # B -> e/2/pi/h
@@ -1552,13 +1455,6 @@ class bTools:
             p[2 * i] = x * bmath.radeg
             p[2 * i + 1] = bTools.U2rf(x, A, v1, vn, n, theta, phis)
         return p
-        # if (Blt_GraphElement(interp, graph, element, 2*N, p) != TCL_OK) {
-        # Tcl_AppendResult(interp, "wrong # args: \"",
-
-    #       argv[0],"graph element v1.... phis",
-    #       (char*) NULL);
-    # return TCL_ERROR;}
-    # free_dvector(p,0,2*N);
 
     def DrawPhis(phis, height):
         N = 2
@@ -1608,7 +1504,6 @@ class bTools:
     def DrawHLines(
         v1, vn, n, theta, lolim, uplim, dx, *p, phis, x, h2, y, phi2, hx, wphase
     ):
-        # double v1,vn,n,theta,lolim,uplim,dx,*p,phis,x,h2,y,phi2,hx;
         N = 540
         k = 1
 
@@ -1646,7 +1541,7 @@ class bTools:
     def Draw2rfSep(n, wphase, theta, phis, A, v1, vn, B):
         N = 540
         k = 1
-        N = N * n + 1
+        N = N * n + 2
         dx = wphase / (N - 1)
         lolim = -pi
         uplim = pi
@@ -1696,9 +1591,7 @@ class bTools:
                 p[2 * i + 1] = 0
 
             ib = 0
-            ie = N + k  # /* locate turning points ib,ie */
-            # /*	ib= (ymax[j]>y[0]) ? yp[0] : 0;
-            # ie= (ymax[j]<y[N])? yp[nn] : (N+k);
+            ie = N + k
 
             for ibe in range(0, j):
                 if ymax[ji] < ymax[ibe]:
@@ -1710,7 +1603,6 @@ class bTools:
 
             phi2 = phix2[ji]
             h2 = bTools.U2rf(phi2, A, v1, vn, n, theta, phis)
-            # /* p[2*(N+k)] fake*/
             for i in range(ib, ie):
                 x = p[2 * i] / bmath.radeg
                 # /* in radians */
@@ -1742,11 +1634,9 @@ class bTools:
             for i in range(1, N + 1):
                 if p[2 * (i - 1) + 1] == 0 and p[2 * i + 1] != 0:
                     ib += 1
-                    # /*printf ("non-empty bkt begin = %d \n",i);*/
 
                 bkt += p[2 * i + 1]
                 if p[2 * i + 1] != 0 and p[2 * (i + 1) + 1] == 0:
-                    # /*		printf ("non-empty bkt end = %d and bkt = %lf\n",i,bkt);*/
                     bkt = 0
 
             # /* duplicate bottom bkt for plotting*/
@@ -1754,18 +1644,9 @@ class bTools:
                 p[2 * i] = p[4 * (N + k) - 2 - 2 * i]
                 p[2 * i + 1] = -p[4 * (N + k) - (2 * i + 1)]
 
-            # all_Pdata.append(p)
-        # print(all_Pdata)
-        print(phix2)
-        print(ymax)
-        print(yp)
-        print(y)
-        # return all_Pdata
         return p
 
     def Find2rfSep(n, wphase, theta, phis, A, v1, vn):
-        # double v1,vn,n,theta,lolim,uplim,dx,*p,phis,x,h2,w,phi2,hx,*y,*phix2;
-        # double A;
         N = 540
         k = 1
         nn = 0
@@ -1789,12 +1670,9 @@ class bTools:
             if (y[i] >= y[i - 1]) and (y[i] > y[i + 1]):
                 phix2[nn] = lolim + (i - 1) * dx
                 nn += 1
-        nn -= 1  # /* nn=n-1 */
+        nn -= 1
 
     def BKT2rf(wphase, n, theta, phis, A, v1, vn, B, nu):
-        # double v1,vn,n,theta,lolim,uplim,dx,*p,phis,x,h2,w,phi2,A,B;
-        # double *ymax,hx,*y,*phix2,max,bkt,Nu;
-        # int i,N=540,k=1,nn,j,*yp,ib,ie,ibe;
         N = 540
         k = 1
         nn = 0
@@ -1846,9 +1724,6 @@ class bTools:
 
             ib = 0
             ie = N + k  # /* locate turning points ib,ie */
-            # /*	ib= (ymax[j]>y[0]) ? yp[0] : 0;
-            # ie= (ymax[j]<y[N])? yp[nn] : (N+k);
-            # */
 
             for ibe in range(0, j):
                 if ymax[j] < ymax[ibe]:

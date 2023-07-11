@@ -61,7 +61,7 @@ class bmath:
     eo_p = 938.28  # MeV/nucleon
     eo_d = 937.81  # MeV/nucleon
     eo_c = 931.25  # MeV/nucleon
-    eo_o = 931.198  # MeV/nucleon
+    # eo_o = 931.198  # MeV/nucleon
     eo_s = 930.47  # MeV/nucleon
     eo_si = 930.57  # MeV/nucleon
     eo_cu = 930.29  # MeV/nucleon
@@ -69,28 +69,25 @@ class bmath:
     eo_au = 931.26  # MeV/nucleon
     eo_fe = 928.95  # MeV/nucleon
     eo_u = 931.51  # MeV/nucleon
-    eo_ru = 930.60  # MeV/nucleon
-    eo_zr = 930.60  # MeV/nucleon
+    # eo_ru = 930.60  # MeV/nucleon
+    # eo_zr = 930.60  # MeV/nucleon
     Eo = {
-        "p": eo_p,
-        "d": eo_d,
-        "c": eo_c,
-        "o": eo_o,
-        "s": eo_s,
-        "si": eo_si,
-        "cu": eo_cu,
-        "i": eo_i,
-        "au": eo_au,
-        "fe": eo_fe,
-        "u": eo_u,
-        "ru": eo_ru,
-        "zr": eo_zr,
+        "Proton (p)": eo_p,
+        "Deuteron (d)": eo_d,
+        "Carbon (c)": eo_c,
+        "Sulfur (s)": eo_s,
+        "Silicon (si)": eo_si,
+        "Copper (cu)": eo_cu,
+        "Iodine (i)": eo_i,
+        "Gold (au)": eo_au,
+        "Iron (fe)": eo_fe,
+        "Uranium (u)": eo_u,
     }
 
     A_p = 1  # nucleon number
     A_d = 2
     A_c = 12
-    A_o = 16
+    # A_o = 16
     A_s = 32
     A_si = 28
     A_cu = 63
@@ -98,28 +95,25 @@ class bmath:
     A_au = 197
     A_fe = 56
     A_u = 238
-    A_ru = 96
-    A_zr = 96
+    # A_ru = 96
+    # A_zr = 96
     A = {
-        "p": A_p,
-        "d": A_d,
-        "c": A_c,
-        "o": A_o,
-        "s": A_s,
-        "si": A_si,
-        "cu": A_cu,
-        "i": A_i,
-        "au": A_au,
-        "fe": A_fe,
-        "u": A_u,
-        "ru": A_ru,
-        "zr": A_zr,
+        "Proton (p)": A_p,
+        "Deuteron (d)": A_d,
+        "Carbon (c)": A_c,
+        "Sulfur (s)": A_s,
+        "Silicon (si)": A_si,
+        "Copper (cu)": A_cu,
+        "Iodine (i)": A_i,
+        "Gold (au)": A_au,
+        "Iron (fe)": A_fe,
+        "Uranium (u)": A_u,
     }
 
     Q_p = 1  # atomic number
     Q_d = 2
     Q_c = 6
-    Q_o = 8
+    # Q_o = 8
     Q_s = 16
     Q_si = 14
     Q_cu = 29
@@ -127,22 +121,19 @@ class bmath:
     Q_au = 79
     Q_fe = 26
     Q_u = 92
-    Q_ru = 44
-    Q_zr = 40
+    # Q_ru = 44
+    # Q_zr = 40
     Q = {
-        "p": Q_p,
-        "d": Q_d,
-        "c": Q_c,
-        "o": Q_o,
-        "s": Q_s,
-        "si": Q_si,
-        "cu": Q_cu,
-        "i": Q_i,
-        "au": Q_au,
-        "fe": Q_fe,
-        "u": Q_u,
-        "ru": Q_ru,
-        "zr": Q_zr,
+        "Proton (p)": Q_p,
+        "Deuteron (d)": Q_d,
+        "Carbon (c)": Q_c,
+        "Sulfur (s)": Q_s,
+        "Silicon (si)": Q_si,
+        "Copper (cu)": Q_cu,
+        "Iodine (i)": Q_i,
+        "Gold (au)": Q_au,
+        "Iron (fe)": Q_fe,
+        "Uranium (u)": Q_u,
     }
 
     c = 299792458.0  # Speed of light in vacuum, m/s (exact)

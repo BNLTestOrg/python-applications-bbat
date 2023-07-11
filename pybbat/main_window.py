@@ -8,6 +8,7 @@ from qtpy.QtWidgets import (
     QComboBox,
     QSpinBox,
     QTabWidget,
+    QMessageBox,
 )
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
@@ -94,13 +95,17 @@ class BBat(CADMainWindow):
         self.uptheta = 180 / self.n
         self.deltav = self.Vn / (self.Vrf + 1e-20)
         self.phi2s = self.phis_1 + self.theta
+        self.phis_2 = 0
+        self.phi12_1 = 0
+        self.phi12t_1 = 0
+        self.BUNe_1 = 0
 
         # pi and radeg are in the para
         self.BUNlt = 2
         self.BUNlr = 0
         self.BUNe = 0
         self.BUNld = 0
-        self.species = "au"
+        self.species = "Gold (au)"
         self.fnu2rf = 0
         self.A = 0
         self.ww = 1
@@ -109,7 +114,7 @@ class BBat(CADMainWindow):
         self.w = None
         self.Bf = 0
         self.frf = 28
-        self.gammas = 9.68008184872
+        self.gammas = 5
         self.pc = 8.96644213239
         self.km = 8083.41302244
         self.kg = 8.08341302244
@@ -118,7 +123,7 @@ class BBat(CADMainWindow):
         self.Wmax = 2
         self.Wmin = -2
         self.phase_t1 = 0
-        self.etas_1 = 0
+        self.etas_1 = 1
 
         self.BKT_x = []
         self.BKT_y = []
@@ -127,6 +132,7 @@ class BBat(CADMainWindow):
 
         self.BUN = "lt"
         self.x = 1
+        self.srfWid = None
 
         self.machineValues = bmath.machineParameters[self.machine]
 
@@ -157,9 +163,6 @@ class BBat(CADMainWindow):
             "Copper (cu)": bmath.Q_cu,
             "Iodine (i)": bmath.Q_i,
             "Uranium (u)": bmath.Q_u,
-            "Ruthenium (ru)": bmath.Q_ru,
-            "Zirconium (zr)": bmath.Q_zr,
-            "others": 0,
         }
 
         self.v_wid = QWidget()
@@ -185,7 +188,7 @@ class BBat(CADMainWindow):
         layout = QGridLayout()
         layout.addWidget(control, 0, 0, 17, 3)
         more = QPushButton("More Results")
-        more.clicked.connect(self.MoreResults)
+        more.clicked.connect(self.showMoreRes)
         layout.addWidget(more, 17, 1, 1, 1)
         layout.addWidget(buttons, 0, 3, 1, 1)
 
@@ -200,7 +203,6 @@ class BBat(CADMainWindow):
         self.plot.plotItem.addItem(self.vline)
         self.plot.scene().sigMouseMoved.connect(self.mainMouseMoved)
         layout.addWidget(self.plot, 1, 3, 10, 1)
-
         textbox = self.textBox()
         layout.addWidget(textbox, 11, 3, 8, 1)
 
@@ -229,6 +231,12 @@ class BBat(CADMainWindow):
         self.nslen_label = QLabel("Bucket length (ns)")
         self.nsLine = QLineEdit("35.714285")
 
+        self.morRes = QWidget()
+        self.MoreResults()
+
+        self.calcBucket()
+        self.CBunch()
+
         self.second_g2rf = CadPlot(show_legend=False)
         self.second_g2rf.plotItem.vb.setXRange(-370, 370)
         self.second_g2rf.plotItem.vb.setYRange(-3, 3)
@@ -247,19 +255,22 @@ class BBat(CADMainWindow):
         self.bltCoor(mousePt.x(), mousePt.y())
         self.bun(mousePt.x(), mousePt.y())
 
+    def closeEvent(self, event):
+        super().closeEvent(event)
+        if self.morRes != None and self.morRes.isVisible():
+            self.morRes.close()
+        if self.srfWid != None and self.srfWid.isVisible():
+            self.srfWid.close()
+        if self.v_wid != None and self.v_wid.isVisible():
+            self.v_wid.close()
+
     def setSTbuck(self):
         self.st_bkt = float(self.statLine.text())
 
     def secondRFWindow(self):
-        # self.Vn = 100
         self.Vrf = 0
-        # self.Vrf_k = self.Vrf * bmath.kilo
-        # self.Vn_k = self.Vn * bmath.kilo
-        # self.k = 0
         self.B1 = self.e / (2 * bmath.pi * self.h)
         self.n = 2
-        # self.vzerox = [-190, 190]
-        # self.vzeroy = [0,0]
         self.deltav = self.Vn / (self.Vrf + 1e-20)
         self.bdot = (8.7 * 201 * 13.7) / 1000
         self.srfWid = QWidget()
@@ -398,13 +409,11 @@ class BBat(CADMainWindow):
         self.second_g2rf.plotItem.setLabel("bottom", "RF Phase (deg)")
         self.second_g2rf.plotItem.setLabel("left", "W")
 
-        self.g2rf_hline = pg.InfiniteLine(
-            angle=0, movable=False, bounds=[self.W2Min, self.W2Max]
-        )
-        self.g2rf_vline = pg.InfiniteLine(angle=90, movable=False, bounds=[-370, 370])
-        self.second_g2rf.plotItem.addItem(self.g2rf_hline)
-        self.second_g2rf.plotItem.addItem(self.g2rf_vline)
-        self.second_g2rf.scene().sigMouseMoved.connect(self.mouseMoved)
+        self.g2rf_hline = pg.InfiniteLine(angle=0, movable=False)
+        self.g2rf_vline = pg.InfiniteLine(angle=90, movable=False)
+        # self.second_g2rf.plotItem.addItem(self.g2rf_hline)
+        # self.second_g2rf.plotItem.addItem(self.g2rf_vline)
+        # self.second_g2rf.scene().sigMouseMoved.connect(self.mouseMoved)
 
         layout.addWidget(self.second_g2rf, 0, 5, 20, 4)
 
@@ -487,7 +496,6 @@ class BBat(CADMainWindow):
         x = event.x()
         y = event.y()
         mousePoint = self.second_g2rf.plotItem.vb.mapSceneToView(event)
-        # print(mousePoint.x(), 0)
         self.g2rf_vline.setPos((mousePoint.x(), 0))
         self.g2rf_hline.setPos((0, mousePoint.y()))
         self.blt2rfCoor(mousePoint.x(), mousePoint.y())
@@ -596,9 +604,9 @@ class BBat(CADMainWindow):
         vec_2rfv = bTools.Draw2rf(self.Vrf, self.Vn, self.n, self.theta, self.phase_t1)
         self.RFV2_x = vec_2rfv[::2]
         self.RFV2_y = vec_2rfv[1::2]
-        self.second_g2rf.addOrUpdateDataset(
-            "2RFV", self.RFV2_x, self.RFV2_y, color="green", width=0.8
-        )
+        # self.second_g2rf.addOrUpdateDataset(
+        #    "2RFV", self.RFV2_x, self.RFV2_y, color="green", width=0.8
+        # )
 
         vec_2rfu = bTools.Draw2rfU(
             self.A_1,
@@ -612,9 +620,9 @@ class BBat(CADMainWindow):
         )
         self.RFU2_x = vec_2rfu[::2]
         self.RFU2_y = vec_2rfu[1::2]
-        self.second_g2rf.addOrUpdateDataset(
-            "2RFU", self.RFU2_x, self.RFU2_y, color="blue", width=0.8
-        )
+        # self.second_g2rf.addOrUpdateDataset(
+        #    "2RFU", self.RFU2_x, self.RFU2_y, color="blue", width=0.8
+        # )
 
         vec_phis = bTools.DrawPhis(self.phis_1, 0.5)
         vec_phisx = vec_phis[::2]
@@ -634,10 +642,10 @@ class BBat(CADMainWindow):
             self.n,
             self.phase_t1,
             self.theta,
-            self.phis,
+            self.phis_1,
             self.A_1,
-            self.Vrf,
-            self.Vn,
+            self.Vrf_k,
+            self.Vn_k,
             self.B1,
         )
         xsep = sep_data[::2]
@@ -898,7 +906,6 @@ class BBat(CADMainWindow):
         )
 
     def MoreResults(self):
-        self.morRes = QWidget()
         self.morRes.setWindowTitle("bkt")
         layout = QGridLayout()
         title = QLabel(
@@ -941,6 +948,8 @@ class BBat(CADMainWindow):
         layout.addWidget(ok, 11, 0, 1, 2)
 
         self.morRes.setLayout(layout)
+
+    def showMoreRes(self):
         self.morRes.show()
 
     def ButtonPanel(self):
@@ -986,7 +995,9 @@ class BBat(CADMainWindow):
         )
         self.BUN_x = []
         self.BUN_y = []
-        self.plot.addOrUpdateDataset("BUN", self.BUN_x, self.BUN_y, width=0.8)
+        self.plot.addOrUpdateDataset(
+            "BUN", self.BUN_x, self.BUN_y, color="blue", width=0.8
+        )
 
     def show_SRF(self, checked):
         self.srf = self.secondRFWindow()
@@ -1146,7 +1157,7 @@ class BBat(CADMainWindow):
         machine_label = QLabel("Machine")
         layout.addWidget(machine_label, 1, 0, 1, 2)
         self.machine_line = QComboBox()
-        self.machine_line.addItems(["AGS", "Booster", "RHIC", "others"])
+        self.machine_line.addItems(["AGS", "Booster", "RHIC"])
         self.machine_line.setCurrentIndex(2)
         self.machine_line.currentTextChanged.connect(self.updateMachine)
         layout.addWidget(self.machine_line, 1, 2, 1, 1)
@@ -1212,9 +1223,6 @@ class BBat(CADMainWindow):
                 "Copper (cu)",
                 "Iodine (i)",
                 "Uranium (u)",
-                "Ruthenium (ru)",
-                "Zirconium (zr)",
-                "others",
             ]
         )
 
@@ -1355,40 +1363,30 @@ class BBat(CADMainWindow):
         self.charge_line.setText(str(self.e))
 
     def checkSpeciesCharge(self):
-        # IDK WHAT TO CONNECT THIS TO....
-        if int(self.species_line.currentText()) < 0:
-            print("atomic number is always > 0")
-            # if int(self.xa????? < 0):
-            print("nucleon number is always >0")
-        # if(xeo<0):
-        # print( "rest energy per nucleon is always >0" )
+        if int(self.charge_line.text()) < 0:
+            bTools.errorBox("atomic number is always > 0")
 
     def calcBucket(self):
         """From cBKT.tcl"""
         if self.e > bmath.Q[self.species]:
-            print("the charge state cannot be greater than the atomic number")
+            bTools.errorBox("the charge state cannot be greater than the atomic number")
 
         machineValues = bmath.machineParameters[self.machine]
         self.Eo = bmath.Eo[self.species] * bmath.mega * bmath.A[self.species]
         self.gamma_tr = machineValues["gamma_tr"]
-        # set C $_C($machine)
         self.C = machineValues["C"]
-        # set Ro [expr $C/(2*$_pi)]
         self.Ro = self.C / (2 * bmath.pi)
-        # set rho $_rho($machine)
         self.rho = machineValues["rho"]
-        # set vrf [expr $Vrf*$_kV]
         self.Vrf_k = self.Vrf * bmath.kV
 
-        # print(self.gbfpk)
         if self.gbfpk == "gamma":
             if self.gammas <= 1.0:
-                print("gammas is always > 1")
+                bTools.errorBox("gammas is always > 1")
             else:
                 self.gammas_1 = self.gammas
         elif self.gbfpk == "bf":
             if self.Bf <= 0:
-                print("BF is always > 0")
+                bTools.errorBox("BF is always > 0")
             else:
                 self.Bf_1 = self.Bf
                 self.gammas_1 = math.hypot(
@@ -1396,27 +1394,29 @@ class BBat(CADMainWindow):
                 )
         elif self.gbfpk == "frf":
             if self.frf <= 0:
-                print("frf is always > 0")
+                bTools.errorBox("frf is always > 0")
             else:
                 self.frfmax = self.h * bmath.c / self.Ro / (2.0 * bmath.pi) / bmath.mega
                 if self.frfmax < self.frf:
-                    print("the rf frequency can't be greater than the frfmax MHz")
+                    bTools.errorBox(
+                        "the rf frequency can't be greater than the frfmax MHz"
+                    )
                 self.frf_1 = self.frf * bmath.mega
                 self.betas = 2 * bmath.pi * self.frf_1 * self.Ro / (self.h * bmath.c)
                 self.gammas_1 = 1.0 / math.sqrt(1 - self.betas * self.betas)
         elif self.gbfpk == "pc":
             if self.pc <= 0.0:
-                print("the pc is always > 0")
+                bTools.errorBox("the pc is always > 0")
             self.pc_1 = self.pc * bmath.giga * bmath.A[self.species]
             self.gammas_1 - math.hypot(1.0, self.pc_1 / self.Eo)
         elif self.gbfpk == "km":
             if self.Ekm <= 0:
-                print("Ek is always > 0")
+                bTools.errorBox("Ek is always > 0")
             self.Ek_1 = self.Ekm * bmath.mega * bmath.A[self.species]
             self.gammas_1 = 1.0 + self.Ek_1 / self.Eo
         elif self.gbfpk == "kg":
             if self.Ek <= 0:
-                print("Ek is always > 0")
+                bTools.errorBox("Ek is always > 0")
             self.Ek_1 = self.Ekg * bmath.giga * bmath.A[self.species]
             self.gammas_1 = 1.0 + self.Ek_1 / self.Eo
 
@@ -1424,15 +1424,15 @@ class BBat(CADMainWindow):
         self.Ek = (self.gammas_1 - 1.0) * self.Eo
         self.pc = math.sqrt(1.0 - self.Eo * self.Eo / self.Es / self.Es) * self.Es
         self.betas = math.sqrt(1.0 - 1.0 / self.gammas_1 / self.gammas_1)
-        self.etas = (
-            1.0 / self.gamma_tr / (self.gamma_tr - 1.0) / self.gammas_1 / self.gammas_1
-        )
+        # self.etas = (
+        #    1.0 / self.gamma_tr / (self.gamma_tr - 1.0) / self.gammas_1 / self.gammas_1
+        # )
+        self.etas = (1 / (self.gamma_tr**2)) - (1 / (self.gammas_1**2))
         self.A = self.etas * ((self.h * bmath.c / self.Ro) ** 2) / self.Es
         self.B = self.e * self.Vrf_k / (2 * bmath.pi * self.h)
-        self.phis = bTools.phi_s(self.etas, self.C, self.rho, self.bdot, self.Vrf_k)
+        self.phis = bTools.Phi_s(self.etas, self.C, self.rho, self.Bdot, self.Vrf_k)
         if self.phis == float("inf"):
-            print("phis is infinity, ignoring the value")
-            # self.fnu = self.fnu
+            bTools.errorBox("phis is infinity, ignoring the value")
             self.phis = 0
         self.fnu = math.sqrt(abs(self.A * self.B * math.cos(self.phis))) / (
             2.0 * bmath.pi
@@ -1456,11 +1456,14 @@ class BBat(CADMainWindow):
         # DrawBkt $phis $A $B
         bkt_data = bTools.DrawBkt(self.phis, self.A, self.B)
         self.BKT_x = bkt_data[::2]
+        self.BKT_x = self.BKT_x[12:]
+        self.BKT_x = self.BKT_x[:-12]
         self.BKT_y = bkt_data[1::2]
+        self.BKT_y = self.BKT_y[12:]
+        self.BKT_y = self.BKT_y[:-12]
 
         self.phis_1 = self.phis * 180 / bmath.pi
 
-        ## IDK why this is done twice...
         if self.gbfpk == "gamma":
             self.Bf_1 = math.sqrt(self.gammas_1 * self.gammas_1 - 1.0)
             self.frf_1 = self.h * self.betas * bmath.c / self.C
@@ -1503,39 +1506,22 @@ class BBat(CADMainWindow):
             self.frf_1 = self.h * self.betas * bmath.c / self.C
 
         self.frf_1 = self.frf_1 / bmath.mega
-        print(self.frf_1)
         self.frf = self.frf_1
-        print(self.frf)
         self.gammas = self.gammas_1
-        print(self.gammas)
         self.Bf = self.Bf_1
-        print(self.Bf)
         self.A_1 = self.A
-        print(self.A_1)
         self.B_1 = self.B
-        print(self.B_1)
         self.betas_1 = self.betas
-        print(self.betas_1)
         self.fnu_1 = self.fnu
-        print(self.fnu_1)
         self.etas_1 = self.etas
-        print(self.etas_1)
         self.Ek_1 = self.Ek / bmath.giga / bmath.A[self.species]
-        print(self.Ek_1)
         self.Ek = self.Ek / bmath.giga / bmath.A[self.species]
-        print(self.Ek)
         self.Ekm = self.Ek * bmath.kilo
-        print(self.Ekm)
         self.Ekg = self.Ek
-        print(self.Ekg)
         self.pc_1 = self.pc / bmath.giga / bmath.A[self.species]
-        print(self.pc_1)
         self.pc = self.pc / bmath.giga / bmath.A[self.species]
-        print(self.pc)
         self.BKTld = abs(self.aphi12) * bmath.radeg
-        print(self.BKTld)
         self.BKTlt = abs(self.aphi12) / (2 * bmath.pi * self.frf) * bmath.kilo
-        print(self.BKTlt)
         self.BKTdW = math.sqrt(
             abs(
                 2
@@ -1547,7 +1533,6 @@ class BBat(CADMainWindow):
                 )
             )
         )
-        print(self.BKTdW)
 
         self.bline.setText(str(self.Bf))
         self.frfline.setText(str(self.frf))
@@ -1561,6 +1546,7 @@ class BBat(CADMainWindow):
         self.drawBKT_BUN()
 
     def drawBKT_BUN(self):
+
         self.plot.addOrUpdateDataset(
             "BKT", self.BKT_x, self.BKT_y, color="red", width=0.8
         )
@@ -1569,111 +1555,72 @@ class BBat(CADMainWindow):
         )
 
     def CBunch(self):
-        self.abuns = 0
-        self.abunm = 0
-        self.phis_2 = 0
-        self.phi12_1 = 0
-        self.phi12t_1 = 0
-        self.BUNe_1 = 0
-
-        # check these again incase the machine changed
+        self.checkSpeciesCharge()
         self.updateMachine()
         machineValues = bmath.machineParameters[self.machine]
-        # set Eo [expr $_Eo($species)*$_mega*$_A($species)]
         self.Eo = bmath.Eo[self.species] * bmath.mega * bmath.A[self.species]
-        # set gamma_tr $_gamma_tr($machine)
         self.gamma_tr = machineValues["gamma_tr"]
-        # set C $_C($machine)
         self.C = machineValues["C"]
-        # set Ro [expr $C/(2*$_pi)]
         self.Ro = self.C / (2 * bmath.pi)
-        # set rho $_rho($machine)
         self.rho = machineValues["rho"]
-        # set vrf [expr $Vrf*$_kV]
         self.Vrf_k = self.Vrf * bmath.kV
-
-        # if self.machine not in bmath.machineList:
-        #    self.xcir = 0
-        #    self.xrho = 0
-        #    self.xtr = 0
-        #    self.cMachine()
-        #    self.C = self.xcir
-        #    self.rho = self.xrho
-        #    self.gamma_tr = self.xtr
-
-        # if self.species_line.currentText() == "others":
-        #    self.xa = 0
-        #    self.xeo = 0
-        #    self.xq = 0
-        #    self.cSpecies()
-        #    self._Q[self.species] = self.xq
-        #    self._A[self.species] = self.xa
-        #    self._Eo[self.species] = self.xeo
 
         if self.e > bmath.Q[self.species]:
-            print("the charge state cannot be greater than the atomic number")
-
-        self.Eo = bmath.Eo[self.species] * bmath.mega * bmath.A[self.species]
-        self.gamma_tr = machineValues["gamma_tr"]
-        self.Ro = self.C / (2 * bmath.pi)
-        self.C = machineValues["C"]
-        self.rho = machineValues["rho"]
-        self.Vrf_k = self.Vrf * bmath.kV
+            bTools.errorBox("the charge state cannot be greater than the atomic number")
 
         if self.gbfpk == "gamma":
             if self.gammas <= 1.0:
-                print("gammas is alway > 1")
-                self.gammas_1 = self.gammas
+                bTools.errorBox("gammas is alway > 1")
+            self.gammas_1 = self.gammas
         elif self.gbfpk == "bf":
             if self.Bf <= 0:
-                print("Bf is always > 0")
+                bTools.errorBox("Bf is always > 0")
             self.Bf_1 = self.Bf
             self.gammas_1 = math.hypot(
-                1.0, (self.e * bmath.c * self.rho / (self.Eo * self.Bf_1))
+                1.0, (self.e * bmath.c * self.rho / self.Eo * self.Bf_1)
             )
         elif self.gbfpk == "frf":
             if self.frf <= 0.0:
-                print("frf is always > 0")
+                bTools.errorBox("frf is always > 0")
             self.frfmax = self.h * bmath.c / self.Ro / (2 * bmath.pi) / bmath.mega
             if self.frfmax < self.frf:
-                print("error rf frequency can't be greater than the maxmimum")
+                bTools.errorBox("error rf frequency can't be greater than the maxmimum")
             self.frf_1 = self.frf * bmath.mega
             self.betas = 2 * bmath.pi * self.frf_1 * self.Ro / (self.h * bmath.c)
             self.gammas_1 = 1.0 / math.sqrt(1.0 - self.betas * self.betas)
         elif self.gbfpk == "pc":
             if self.pc <= 0.0:
-                print("the pc is always > 0")
+                bTools.errorBox("the pc is always > 0")
             self.pc_1 = self.pc * bmath.giga * bmath.A[self.species]
             self.gammas_1 = math.hypot(1.0, self.pc_1 / self.Eo)
         elif self.gbfpk == "km":
             if self.Ekm <= 0:
-                print("Ek is always > 0")
+                bTools.errorBox("Ek is always > 0")
             self.Ek_1 = self.Ekm * bmath.mega * bmath.A[self.species]
             self.gammas_1 = 1.0 + self.Ek_1 / self.Eo
         elif self.gbfpk == "kg":
             if self.Ek <= 0:
-                print("Ek is always > 0")
+                bTools.errorBox("Ek is always > 0")
             self.Ek_1 = self.Ekg * bmath.giga * bmath.A[self.species]
             self.gammas_1 = 1.0 + self.Ek_1 / self.Eo
 
         self.Es = self.Eo * self.gammas_1
-        self.Ek = (self.gammas_1 - 1) * self.Eo
-        self.pc = math.sqrt(1.0 - self.Eo * self.Eo / self.Es / self.Es)
-        self.betas = math.sqrt(1 - 1 / self.gammas_1 / self.gammas_1)
-        self.etas = (
-            1.0 / self.gamma_tr / self.gamma_tr - 1.0 / self.gammas_1 / self.gammas_1
-        )
-        self.A = self.etas * (self.h * bmath.c / self.Ro) ** 2 / self.Es
+        self.Ek = (self.gammas_1 - 1.0) * self.Eo
+        self.pc = math.sqrt(1.0 - self.Eo * self.Eo / self.Es / self.Es) * self.Es
+        self.betas = math.sqrt(1.0 - 1.0 / self.gammas_1 / self.gammas_1)
+        # self.etas = (
+        #    1.0 / self.gamma_tr / self.gamma_tr - 1.0 / self.gammas_1 / self.gammas_1
+        # )
+        self.etas = (1 / (self.gamma_tr**2)) - (1 / (self.gammas_1**2))
+        self.A = self.etas * (self.h * bmath.c / self.Ro) ** 2.0 / self.Es
         self.B = self.e * self.Vrf_k / (2 * bmath.pi * self.h)
-        self.phis_2 = bTools.Phi_s(self.etas, self.C, self.rho, self.bdot, self.Vrf_k)
+        self.phis_2 = bTools.Phi_s(self.etas, self.C, self.rho, self.Bdot, self.Vrf_k)
         self.phis = self.phis_2
         self.phis_1 = self.phis_2 * 180 / bmath.pi
         self.st_bkt = 16.0 * math.sqrt(abs(self.B / self.A))
         self.alpha = bTools.Alpha_bkt(self.phis_2)
         self.m_bkt = self.st_bkt * self.alpha
-        self.drawBKT_BUN()
 
-        ## IDK why this is done twice...
         if self.gbfpk == "gamma":
             self.Bf_1 = (
                 math.sqrt(self.gammas_1 * self.gammas_1 - 1.0)
@@ -1721,23 +1668,20 @@ class BBat(CADMainWindow):
             )
             self.frf_1 = self.h * self.betas * bmath.c / self.C
 
-        # print(self.BUN)
-
         if self.BUN == "em":
             if self.BUNe <= 0.0:
-                print(" Bunch area is always > 0")
+                bTools.errorBox(" Bunch area is always > 0")
             self.BUNe_1 = self.BUNe * bmath.A[self.species]
             self.abun = self.BUNe_1 / self.st_bkt
             self.phibun2 = bTools.i_Alpha_bun(self.abun, self.phis_2)
-
             self.phibun1 = bTools.Phi_1_bun(self.phis_2, self.phibun2)
-            self.phibun1 = bTools.proper_phi(self.phis_2, self.phibun1)
-            self.phibun2 = bTools.proper_phi(self.phis_2, self.phibun2)
+            self.phibun1 = bTools.Proper_phi(self.phis_2, self.phibun1)
+            self.phibun2 = bTools.Proper_phi(self.phis_2, self.phibun2)
             self.phi12 = abs(self.phibun2 - self.phibun1)
             self.BUNld = self.phi12 * bmath.radeg
         if self.BUN == "lt":
             if self.BUNlt <= 0:
-                print("Bunch length is always > 0")
+                bTools.errorBox("Bunch length is always > 0")
             self.phi12 = bmath.ns * 2.0 * bmath.pi * self.frf_1 * self.BUNlt
             self.BUNld = self.phi12 * bmath.radeg
             self.BUNlr = self.phi12
@@ -1745,11 +1689,11 @@ class BBat(CADMainWindow):
             self.BUNe_1 = self.abun * self.st_bkt
             self.phibun2 = bTools.i_Alpha_bun(self.abun, self.phis_2)
             self.phibun1 = bTools.Phi_1_bun(self.phis_2, self.phibun2)
-            self.phibun1 = bTools.proper_phi(self.phis_2, self.phibun1)
-            self.phibun2 = bTools.proper_phi(self.phis_2, self.phibun2)
+            self.phibun1 = bTools.Proper_phi(self.phis_2, self.phibun1)
+            self.phibun2 = bTools.Proper_phi(self.phis_2, self.phibun2)
         if self.BUN == "lr":
             if self.BUNlr <= 0.0:
-                print(" Bunch length is always > 0")
+                bTools.errorBox(" Bunch length is always > 0")
             self.phi12 = self.BUNlr
             self.BUNlt = self.BUNlr / (2.0 * bmath.pi * self.frf_1) / bmath.ns
             self.BUNld = self.phi12 * bmath.radeg
@@ -1757,11 +1701,11 @@ class BBat(CADMainWindow):
             self.BUNe_1 = self.abun * self.st_bkt
             self.phibun2 = bTools.i_Alpha_bun(self.abun, self.phis_2)
             self.phibun1 = bTools.Phi_1_bun(self.phis_2, self.phibun2)
-            self.phibun1 = bTools.proper_phi(self.phis_2, self.phibun1)
-            self.phibun2 = bTools.proper_phi(self.phis_2, self.phibun2)
+            self.phibun1 = bTools.Proper_phi(self.phis_2, self.phibun1)
+            self.phibun2 = bTools.Proper_phi(self.phis_2, self.phibun2)
         if self.BUN == "ld":
             if self.BUNld <= 0.0:
-                print(" Bunch length is always > 0")
+                bTools.errorBox(" Bunch length is always > 0")
             self.phi12 = self.BUNld / bmath.radeg
             self.BUNlr = self.phi12
             self.BUNld = self.phi12 * bmath.radeg
@@ -1773,7 +1717,15 @@ class BBat(CADMainWindow):
             self.phibun1 = bTools.proper_phi(self.phis_2, self.phibun1)
             self.phibun2 = bTools.proper_phi(self.phis_2, self.phibun2)
 
-        # DrawBun self.phis2, self.phibun1, self.phibun2, self.A, self.B
+        print(self.phis_2, self.phibun1, self.phibun2, self.A, self.B)
+        bun_data = bTools.DrawBun(
+            self.phis_2, self.phibun1, self.phibun2, self.A, self.B
+        )
+        self.BUN_x = bun_data[::2]
+        self.BUN_y = bun_data[1::2]
+        self.plot.addOrUpdateDataset(
+            "BUN", self.BUN_x, self.BUN_y, color="blue", width=0.8
+        )
 
         if self.BUN == "em":
             # in unit of ns
@@ -1837,8 +1789,6 @@ class BBat(CADMainWindow):
         self.df_f = -self.dP_Ps * self.etas_1
         self.dff_val.setText(str(self.df_f))
         self.x = x * (bmath.pi / 180)
-        # print(self.A_1)
-        # print(self.B_1)
         self.Tnu = bTools.Period_bun(self.phis, self.x, self.A_1, self.B_1)
         self.fnu_1 = 1.0 / (self.Tnu + 1.0e-20)
         self.fnu_val.setText(str(self.fnu_1))
@@ -1876,23 +1826,14 @@ class BBat(CADMainWindow):
                 self.abun = bTools.Alpha_bun_phi12(self.phi12, self.phis)
                 self.BUNe_1 = self.abun * self.st_bkt
                 self.BUNe = self.BUNe_1
-                # print(self.phis)
-                # print(self.phibun1)
-                # print(self.phibun2)
-                # print(self.A_1)
-                # print(self.B_1)
                 bun_data = bTools.DrawBun(
                     self.phis, self.phibun1, self.phibun2, self.A_1, self.B_1
                 )
                 self.BUN_x = bun_data[::2]
                 self.BUN_y = bun_data[1::2]
-                # self.plot.addOrUpdateDataset("BUN", bunx, buny, width=0.8)
-        # DrawBun $phis $phibun1 $phibun2 $A_1 $B_1
-        # .gbkt element show {BUN BKT}
         else:
             if self.phibun2 >= self.phi2 and self.phibun2 < self.phis:
                 self.phibun2 = bTools.Generic_phi2(self.phis, self.phibun2)
-                # bTools.generic_phis
                 self.phibun1 = bTools.Phi_1_bun(self.phis, self.phibun2)
                 self.BUNlr = abs(self.phibun2 - self.phibun1)
                 self.phi12 = self.BUNlr
@@ -1907,17 +1848,11 @@ class BBat(CADMainWindow):
                 self.phibun1 = bTools.Phi_1_bun(self.phis, self.phibun2)
                 self.phibun1 = bTools.proper_phi(self.phis, self.phibun1)
                 self.phibun2 = bTools.proper_phi(self.phis, self.phibun2)
-                # print(self.phis)
-                # print(self.phibun1)
-                # print(self.phibun2)
-                # print(self.A_1)
-                # print(self.B_1)
                 bun_data = bTools.DrawBun(
                     self.phis, self.phibun1, self.phibun2, self.A_1, self.B_1
                 )
                 self.BUN_x = bun_data[::2]
                 self.BUN_y = bun_data[1::2]
-                # self.plot.addOrUpdateDataset("BUN", bunx, buny, width=0.8)
 
 
 class cBucket:
@@ -1933,21 +1868,3 @@ class cBucket:
             print("Error: Bending radius is always > 0")
         if self.xtr < 0:
             print("Error: gamma_tr is always > 0")
-
-
-# class Utilities:
-# def bltvector(self, n):
-# try:
-# assumes n is a global variable
-#    blt.vector(n)
-# except:
-#    pass
-
-# def environment(self):
-# I'm iffy about this, there's a different way to find the path
-#     env = os.environ
-#    try:
-#        path = env["PATH"]
-#    except KeyError:
-#        return 1
-#    paths = path.split(":")
