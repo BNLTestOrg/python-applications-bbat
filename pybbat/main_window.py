@@ -1325,6 +1325,7 @@ class BBat(CADMainWindow):
     def updateBunchVar(self):
         if self.BUN == "lt":
             self.BUNlt = float(self.bunch_line.text())
+            self.LengthLine.setText(str(self.BUNlt))
         elif self.BUN == "em":
             self.BUNe = float(self.bunch_line.text())
         elif self.BUN == "lr":
@@ -1543,6 +1544,7 @@ class BBat(CADMainWindow):
         self.bucLine.setText(str(self.BKTld))
         self.nsLine.setText(str(self.BKTlt))
         self.momline.setText(str(self.pc))
+        self.bunLine.setText(str(self.BUNld))
         self.drawBKT_BUN()
 
     def drawBKT_BUN(self):
@@ -1667,7 +1669,7 @@ class BBat(CADMainWindow):
                 * (self.Eo)
             )
             self.frf_1 = self.h * self.betas * bmath.c / self.C
-
+        self.updateBunchVar()
         if self.BUN == "em":
             if self.BUNe <= 0.0:
                 bTools.errorBox(" Bunch area is always > 0")
@@ -1771,6 +1773,17 @@ class BBat(CADMainWindow):
         self.Ekg = self.Ek
         self.pc_1 = self.pc / bmath.giga / bmath.A[self.species]
         self.pc = self.pc / bmath.giga / bmath.A[self.species]
+
+        self.bline.setText(str(self.Bf))
+        self.frfline.setText(str(self.frf))
+        self.gline.setText(str(self.gammas))
+        self.betaline.setText(str(self.betas_1))
+        self.eline.setText(str(self.etas_1))
+        self.keline.setText(str(self.Ek))
+        self.bucLine.setText(str(self.BKTld))
+        self.nsLine.setText(str(self.BKTlt))
+        self.momline.setText(str(self.pc))
+        self.bunLine.setText(str(self.BUNld))
 
     def bltCoor(self, x, y):
         self.phase_t1 = x / 360 / (self.frf_1 + 1.0e-20) * bmath.kilo
