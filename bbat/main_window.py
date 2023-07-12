@@ -1,4 +1,3 @@
-from mimetypes import init
 from qtpy.QtWidgets import (
     QLabel,
     QWidget,
@@ -17,7 +16,7 @@ from cad_ui.plotting import CadPlot
 import math
 import pyqtgraph as pg
 
-from pybbat.btools import bTools
+from bbat.btools import bTools
 from .bmath import bmath
 
 
@@ -283,7 +282,7 @@ class BBat(CADMainWindow):
         self.st_bkt = float(self.statLine.text())
 
     def secondRFWindow(self):
-        self.Vrf = 0
+        self.Vrf_V = 0
         self.B1 = self.e / (2 * bmath.pi * self.h)
         self.n = 2
         self.deltav = self.Vn / (self.Vrf + 1e-20)
@@ -607,12 +606,12 @@ class BBat(CADMainWindow):
         #    and redraws the main lines in the graph. (idk about hline, sep3,2,1,0)
         # """
         self.init_sep()
-        vec_2rfv = bTools.Draw2rf(self.Vrf, self.Vn, self.n, self.theta, self.phase_t1)
+        vec_2rfv = bTools.Draw2rf(
+            self.Vrf_V, self.Vn, self.n, self.theta, self.phase_t1
+        )
         self.RFV2_x = vec_2rfv[::2]
         self.RFV2_y = vec_2rfv[1::2]
-        # self.second_g2rf.addOrUpdateDataset(
-        #    "2RFV", self.RFV2_x, self.RFV2_y, color="green", width=0.8
-        # )
+        # self.second_g2rf.addOrUpdateDataset("2RFV", self.RFV2_x, self.RFV2_y, color="green", width=0.8)
 
         vec_2rfu = bTools.Draw2rfU(
             self.A_1,
@@ -626,9 +625,7 @@ class BBat(CADMainWindow):
         )
         self.RFU2_x = vec_2rfu[::2]
         self.RFU2_y = vec_2rfu[1::2]
-        # self.second_g2rf.addOrUpdateDataset(
-        #    "2RFU", self.RFU2_x, self.RFU2_y, color="blue", width=0.8
-        # )
+        # self.second_g2rf.addOrUpdateDataset("2RFU", self.RFU2_x, self.RFU2_y, color="blue", width=0.8)
 
         vec_phis = bTools.DrawPhis(self.phis_1, 0.5)
         vec_phisx = vec_phis[::2]
@@ -673,7 +670,7 @@ class BBat(CADMainWindow):
             self.n,
             self.phase_t1,
             self.A_1,
-            self.Vrf,
+            self.Vrf_V,
             self.Vn,
             self.B1,
         )
@@ -701,6 +698,7 @@ class BBat(CADMainWindow):
         self.V_1spinbox.setValue(value)
         self.A = value
         self.Vrf = value
+        self.Vrf_V = value
         self.Vrf_k = self.Vrf * bmath.kilo
         self.Vn_k = self.Vn * bmath.kilo
         self.deltav = self.Vn / (self.Vrf + 1.0e-20)
@@ -856,10 +854,10 @@ class BBat(CADMainWindow):
         Yt_data = []
         for i in range(-360, 360):
             X_data.append(i)
-            Y_data.append(self.Vrf * math.sin(i / bmath.radeg))
+            Y_data.append(self.Vrf_V * math.sin(i / bmath.radeg))
             Yn_data.append(self.Vn * math.sin(self.n * (i + self.theta) / bmath.radeg))
             Yt_data.append(
-                self.Vrf * math.sin(i / bmath.radeg)
+                self.Vrf_V * math.sin(i / bmath.radeg)
                 + self.Vn * math.sin(self.n * (i + self.theta) / bmath.radeg)
             )
 
@@ -871,7 +869,7 @@ class BBat(CADMainWindow):
         self.v_plot.addOrUpdateDataset(
             "phis_1",
             [self.phis_1, self.phis1],
-            [0, self.Vrf],
+            [0, self.Vrf_V],
             color="brown",
             width=0.8,
         )

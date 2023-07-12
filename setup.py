@@ -3,8 +3,8 @@
 from setuptools import setup, find_packages
 
 
-APP_NAME = "pybbat"
-PACKAGE_NAME = "pybbat"
+APP_NAME = "bbat"
+PACKAGE_NAME = "bbat"
 
 setup(
     name=APP_NAME,

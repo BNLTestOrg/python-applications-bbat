@@ -5,7 +5,7 @@ stages:
       
 
 variables:
-  APP_NAME: pybbat
+  APP_NAME: bbat
   BUILD_BIN: $APP_NAME.shiv
 
 

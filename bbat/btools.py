@@ -1,6 +1,5 @@
-from cmath import pi
 import math
-from pybbat.bmath import bmath
+from bbat.bmath import bmath
 import numpy as np
 from qtpy.QtWidgets import QMessageBox
 
@@ -497,7 +496,7 @@ class bTools:
         Returns:
             float, float: the value at x and phis and the derivative at x and phis
         """
-        fn = math.cos(x) + math.cos(phis) + (x - (math.pi - phis)) * math.sin(phis)
+        fn = math.cos(x) + math.cos(phis) + (x - (bmath.pi - phis)) * math.sin(phis)
         df = math.sin(phis) - math.sin(x)
         return fn, df
 
@@ -517,25 +516,25 @@ class bTools:
         if math.isinf(out):
             return float("inf")
 
-        if tmphis >= 0 and tmphis < math.pi / 2:
+        if tmphis >= 0 and tmphis < bmath.pi / 2:
             phis = tmphis
             out = bTools.bktrtsafe(bTools.fnphi1, phis)
             return out
 
-        if tmphis >= math.pi / 2 and tmphis <= math.pi:
-            phis = math.pi - tmphis
+        if tmphis >= bmath.pi / 2 and tmphis <= bmath.pi:
+            phis = bmath.pi - tmphis
             out = bTools.bktrtsafe(bTools.fnphi1, phis)
-            return math.pi - out
+            return bmath.pi - out
 
-        if tmphis >= math.pi and tmphis < math.pi + math.pi / 2:
-            phis = tmphis - math.pi
+        if tmphis >= bmath.pi and tmphis < bmath.pi + bmath.pi / 2:
+            phis = tmphis - bmath.pi
             out = bTools.bktrtsafe(bTools.fnphi1, phis)
-            return math.pi + out
+            return bmath.pi + out
 
-        if tmphis >= math.pi + math.pi / 2 and tmphis <= math.pi + math.pi:
-            phis = 2 * math.pi - tmphis
+        if tmphis >= bmath.pi + bmath.pi / 2 and tmphis <= bmath.pi + bmath.pi:
+            phis = 2 * bmath.pi - tmphis
             out = bTools.bktrtsafe(bTools.fnphi1, phis)
-            return 2 * math.pi - out
+            return 2 * bmath.pi - out
 
     def fnalpha(x, phis, phi2):
         """
@@ -928,10 +927,12 @@ class bTools:
             )
 
         if vrfk > 0.0:
-            out = math.asin(tmp) if etas < 0 else math.pi - math.asin(tmp)
+            out = math.asin(tmp) if etas < 0 else bmath.pi - math.asin(tmp)
             return out
         else:
-            out = 2 * math.pi - math.asin(tmp) if etas < 0 else math.pi + math.asin(tmp)
+            out = (
+                2 * bmath.pi - math.asin(tmp) if etas < 0 else bmath.pi + math.asin(tmp)
+            )
             return out
 
     def Phi_2_bkt(phis, etas, C, rho, bdot, vrf):
@@ -1344,7 +1345,7 @@ class bTools:
                 p[2 * i + 1] = p[4 * N - (2 * i + 1)]
 
         if phi2 > phi1:
-            uplim = 2 * pi
+            uplim = 2 * bmath.pi
             lolim = phi1
             dx = (uplim - lolim) / (N - 1)
             for i in range(0, N):
@@ -1382,7 +1383,7 @@ class bTools:
                 p[2 * i] = p[4 * N - 2 - 2 * i]
                 p[2 * i + 1] = -p[4 * N - (2 * i + 1)]
         else:
-            lolim = -2 * pi
+            lolim = -2 * bmath.pi
             uplim = phi2  # /* from phi2 down */
 
             dx = (uplim - lolim) / (N - 1)
@@ -1543,8 +1544,8 @@ class bTools:
         k = 1
         N = N * n + 2
         dx = wphase / (N - 1)
-        lolim = -pi
-        uplim = pi
+        lolim = -bmath.pi
+        uplim = bmath.pi
 
         theta = theta / bmath.radeg
         phis = phis / bmath.radeg
@@ -1554,7 +1555,6 @@ class bTools:
         yp = np.zeros(int(n))
         y = np.zeros(int(N))
         y[0] = bTools.U2rf(lolim - dx, A, v1, vn, n, theta, phis)
-        all_Pdata = []
 
         for i in range(1, N):  # find the U curve
             y[i] = bTools.U2rf(lolim + dx * (i - 1), A, v1, vn, n, theta, phis)
