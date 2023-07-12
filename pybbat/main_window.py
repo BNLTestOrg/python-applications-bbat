@@ -112,7 +112,7 @@ class BBat(CADMainWindow):
         self.uu = 10
 
         self.w = None
-        self.Bf = 0
+        self.Bf = 0.30662093
         self.frf = 28
         self.gammas = 5
         self.pc = 8.96644213239
@@ -195,8 +195,12 @@ class BBat(CADMainWindow):
         self.plot = CadPlot()
         self.plot.plotItem.setLabel("bottom", "RF Phase (deg)")
         self.plot.plotItem.setLabel("left", "W")
-        self.plot.plot_vb.setXRange(190, 370)
+        self.plot.plot_vb.setXRange(-190, 370)
         self.plot.plot_vb.setYRange(self.Wmin, self.Wmax)
+        self.plot.xmin_autorange = True
+        self.plot.ymin_autorange = True
+        self.plot.xmax_autorange = True
+        self.plot.ymax_autorange = True
         self.hline = pg.InfiniteLine(angle=0, movable=False)
         self.vline = pg.InfiniteLine(angle=90, movable=False)
         self.plot.plotItem.addItem(self.hline)
@@ -210,7 +214,7 @@ class BBat(CADMainWindow):
         wid.setLayout(layout)
         self.setCentralWidget(wid)
 
-        self.bfield_label = QLabel("Bfield (T)")
+        self.bfield_label = QLabel("B field (T)")
         self.bline = QLineEdit("0.30662093")
         self.frf_label = QLabel("frf (MHz)")
         self.frfline = QLineEdit("28.0")
@@ -1545,6 +1549,14 @@ class BBat(CADMainWindow):
         self.nsLine.setText(str(self.BKTlt))
         self.momline.setText(str(self.pc))
         self.bunLine.setText(str(self.BUNld))
+        self.rf_dict = {
+            "RF Frequency (MHz)": self.frf,
+            "B field (T)": self.Bf,
+            "Gamma": self.gammas,
+            "pc (GeV/c/u)": self.pc,
+            "K (MeV/u)": self.km,
+            "K (GeV/u)": self.kg,
+        }
         self.drawBKT_BUN()
 
     def drawBKT_BUN(self):
