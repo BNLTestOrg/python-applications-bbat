@@ -215,25 +215,25 @@ class BBat(CADMainWindow):
         self.setCentralWidget(wid)
 
         self.bfield_label = QLabel("B field (T)")
-        self.bline = QLineEdit("0.30662093")
+        self.bline = QLineEdit("0.306")
         self.frf_label = QLabel("frf (MHz)")
         self.frfline = QLineEdit("28.0")
         self.gamma_label = QLabel("gamma")
         self.gline = QLineEdit("9.68")
         self.beta_label = QLabel("beta")
-        self.betaline = QLineEdit("0.994649")
+        self.betaline = QLineEdit("0.994")
         self.eta_label = QLabel("eta")
-        self.eline = QLineEdit("-0.0087482")
+        self.eline = QLineEdit("-0.008")
         self.kineng_label = QLabel("Kinetic energy (GeV/u)")
-        self.keline = QLineEdit("8.083413")
+        self.keline = QLineEdit("8.083")
         self.moment_label = QLabel("Momentum (GeV/c/u)")
-        self.momline = QLineEdit("8.966442")
+        self.momline = QLineEdit("8.966")
         self.bunlen_label = QLabel("Bunch length (deg)")
         self.bunLine = QLineEdit("20.16")
         self.buclen_label = QLabel("Bucket length (deg)")
         self.bucLine = QLineEdit("360.0")
         self.nslen_label = QLabel("Bucket length (ns)")
-        self.nsLine = QLineEdit("35.714285")
+        self.nsLine = QLineEdit("35.714")
 
         self.morRes = QWidget()
         self.MoreResults()
@@ -242,9 +242,20 @@ class BBat(CADMainWindow):
         self.CBunch()
 
         self.second_g2rf = CadPlot(show_legend=False)
-        self.second_g2rf.plotItem.vb.setXRange(-370, 370)
+        self.second_g2rf.plotItem.vb.setXRange(-190, 370)
         self.second_g2rf.plotItem.vb.setYRange(-3, 3)
-        self.second_g2rf.plotItem.vb.disableAutoRange()
+        self.second_g2rf.xmin_autorange = True
+        self.second_g2rf.ymin_autorange = True
+        self.second_g2rf.xmax_autorange = True
+        self.second_g2rf.ymax_autorange = True
+        self.second_g2rf.plotItem.setLabel("bottom", "RF Phase (deg)")
+        self.second_g2rf.plotItem.setLabel("left", "W")
+
+        self.g2rf_hline = pg.InfiniteLine(angle=0, movable=False)
+        self.g2rf_vline = pg.InfiniteLine(angle=90, movable=False)
+        self.second_g2rf.plotItem.addItem(self.g2rf_hline)
+        self.second_g2rf.plotItem.addItem(self.g2rf_vline)
+        self.second_g2rf.scene().sigMouseMoved.connect(self.mouseMoved)
 
         for i in range(0, 100):
             self.sep_x["sep_" + str(i)] = []
@@ -410,15 +421,6 @@ class BBat(CADMainWindow):
         refresh.clicked.connect(self.draw2rfButtonCommand)
         layout.addWidget(refresh, 16, 1, 1, 3)
 
-        self.second_g2rf.plotItem.setLabel("bottom", "RF Phase (deg)")
-        self.second_g2rf.plotItem.setLabel("left", "W")
-
-        self.g2rf_hline = pg.InfiniteLine(angle=0, movable=False)
-        self.g2rf_vline = pg.InfiniteLine(angle=90, movable=False)
-        # self.second_g2rf.plotItem.addItem(self.g2rf_hline)
-        # self.second_g2rf.plotItem.addItem(self.g2rf_vline)
-        # self.second_g2rf.scene().sigMouseMoved.connect(self.mouseMoved)
-
         layout.addWidget(self.second_g2rf, 0, 5, 20, 4)
 
         textWid = QWidget()
@@ -529,22 +531,22 @@ class BBat(CADMainWindow):
         self.srf_wid.show()
 
     def blt2rfCoor(self, x, y):
-        self.phase_value2.setText(str(x))
+        self.phase_value2.setText("{:.3f}".format(x))
         self.phase_t1 = (x / 360) / (self.frf_1 + 1.0e-20) * bmath.kilo
-        self.phasens_value2.setText(str(self.phase_t1))
+        self.phasens_value2.setText("{:.3f}".format(self.phase_t1))
         self.dE = y * 2.0 * bmath.pi * self.frf_1  # frf_1 in MHz, dE in MeV
-        self.demev_line2.setText(str(self.dE))
+        self.demev_line2.setText("{:.3f}".format(self.dE))
         self.dE_Es = self.dE / self.Es * bmath.kilo * bmath.mega  # Es in eV
-        self.dees_line2.setText(str(self.dE_Es))
+        self.dees_line2.setText("{:.3f}".format(self.dE_Es))
         self.dP = self.dE / self.betas1
         self.dP_Ps = self.betas1 * self.betas1 * self.dE_Es
-        self.dpmevc_val2.setText(str(self.dP))
-        self.dpps_val2.setText(str(self.dP_Ps))
+        self.dpmevc_val2.setText("{:.3f}".format(self.dP))
+        self.dpps_val2.setText("{:.3f}".format(self.dP_Ps))
         self.gamma_tr = self.machineValues["gamma_tr"]
         self.dR_R = self.dP_Ps / self.gamma_tr**2
         self.df_f = -self.dP_Ps * self.etas_1
-        self.drr_val2.setText(str(self.dR_R))
-        self.dff_val2.setText(str(self.df_f))
+        self.drr_val2.setText("{:.3f}".format(self.dR_R))
+        self.dff_val2.setText("{:.3f}".format(self.df_f))
 
     def set_n(self):
         self.n = float(self.n_line.text())
@@ -664,6 +666,22 @@ class BBat(CADMainWindow):
         #    self.second_g2rf.addOrUpdateDataset("sep" + str(i), data[0], data[1])
         # Draw2rfSep  ".second.g2rf" "sep" $A_1 $B1 $vrf $vn $n $theta $phis_1;
         # self.A2bkt = bTools.BKT2rf(self.phase_t1, self.n, self.theta, self.phis, self.A_1, self.Vrf, self.Vn, self.B1, self.phis_1)
+        contour_data = bTools.Draw2rfHcontour(
+            self.theta,
+            self.phis_1,
+            self.phi2,
+            self.n,
+            self.phase_t1,
+            self.A_1,
+            self.Vrf,
+            self.Vn,
+            self.B1,
+        )
+        self.hline_x = contour_data[::2]
+        self.hline_y = contour_data[1::2]
+        self.second_g2rf.addOrUpdateDataset(
+            "hline", self.hline_x, self.hline_y, color="orange", width=0.8
+        )
         self.updateVPlot()
 
     def helpText(self):
@@ -694,6 +712,7 @@ class BBat(CADMainWindow):
 
     def setVnalue(self):
         value = float(self.vn_line.text())
+        self.Vn_spinbox.setValue(value)
         self.A = value
         self.Vn_k = self.Vn * bmath.kilo
         self.Vrf_k = self.Vrf * bmath.kilo
@@ -804,14 +823,12 @@ class BBat(CADMainWindow):
         # connects to W++
         self.W2Max = self.W2Max + self.ww
         self.W2Min = self.W2Min - self.ww
-        print(self.W2Min)
         self.second_g2rf.plotItem.vb.setYRange(self.W2Min, self.W2Max)
 
     def W2_minus(self):
         # connects to W--
         self.W2Max = self.W2Max - self.ww
         self.W2Min = self.W2Min + self.ww
-        print(self.W2Min)
         self.second_g2rf.plotItem.vb.setYRange(self.W2Min, self.W2Max)
 
     def U2_plus(self):
@@ -879,11 +896,8 @@ class BBat(CADMainWindow):
             self.Vn,
             self.B1,
         )
-        conx = contour_data[::2]
-        cony = contour_data[1::2]
-        self.second_g2rf.addOrUpdateDataset(
-            "hline", conx, cony, color="orange", width=0.8
-        )
+        self.hline_x = contour_data[::2]
+        self.hline_y = contour_data[1::2]
 
         self.A2Bun = bTools.BUN2rf(
             self.theta,
@@ -1089,9 +1103,9 @@ class BBat(CADMainWindow):
         self.mainTextWid = QWidget()
         self.mainTextLayout = QGridLayout()
         phase = QLabel("phase(deg):")
-        self.phase_value = QLabel("54.1689284")
+        self.phase_value = QLabel("54.168")
         phasens = QLabel("phase(ns):")
-        self.phasens_value = QLabel("2.45909358")
+        self.phasens_value = QLabel("2.459")
         self.mainTextLayout.addWidget(phase, 0, 0, 1, 1)
         self.mainTextLayout.addWidget(self.phase_value, 0, 1, 1, 1)
         self.mainTextLayout.addWidget(phasens, 0, 2, 1, 1)
@@ -1273,14 +1287,14 @@ class BBat(CADMainWindow):
         self.statBuck = QLabel("Stationary Bucket Area (eVs/u)")
         self.statBuck.setFont(headerFont)
         layout.addWidget(self.statBuck, 12, 0, 1, 2)
-        self.statLine = QLineEdit("0.3866")
+        self.statLine = QLineEdit("0.386")
         self.statLine.returnPressed.connect(self.setSTbuck)
         layout.addWidget(self.statLine, 12, 2, 1, 1)
 
         self.movBuck = QLabel("Moving Bucket Area (eVs/u)")
         self.movBuck.setFont(headerFont)
         layout.addWidget(self.movBuck, 13, 0, 1, 2)
-        self.movLine = QLineEdit("0.3866")
+        self.movLine = QLineEdit("0.386")
         layout.addWidget(self.movLine, 13, 2, 1, 1)
 
         self.synchFreq = QLabel("Synchronous Frequency (Hz)")
@@ -1292,7 +1306,7 @@ class BBat(CADMainWindow):
         self.bunchArea = QLabel("Bunch Area (eVs/u)")
         self.bunchArea.setFont(headerFont)
         layout.addWidget(self.bunchArea, 15, 0, 1, 2)
-        self.bunchLine = QLineEdit("0.0023")
+        self.bunchLine = QLineEdit("0.002")
         layout.addWidget(self.bunchLine, 15, 2, 1, 1)
 
         self.bunchLength = QLabel("Bunch Length (ns)")
@@ -1332,16 +1346,19 @@ class BBat(CADMainWindow):
             self.LengthLine.setText(str(self.BUNlt))
         elif self.BUN == "em":
             self.BUNe = float(self.bunch_line.text())
+            self.LengthLine.setText(str(self.BUNe))
         elif self.BUN == "lr":
             self.BUNlr = float(self.bunch_line.text())
+            self.LengthLine.setText(str(self.BUNlr))
         else:
             self.BUNld = float(self.bunch_line.text())
+            self.LengthLine.setText(str(self.BUNld))
 
     def RFFreq_action(self):
         text = self.rff_header.currentText()
         value = self.rf_dict[text]
         # calculate something here?
-        self.rff_line.setText(str(value))
+        self.rff_line.setText("{:.3f}".format(value))
         self.gbfpk = self.gbfpk_name[text]
         # figure out what the actual value should be
         # self.rf_dict[text] = float(self.rff_line.text())
@@ -1365,10 +1382,10 @@ class BBat(CADMainWindow):
     def updateCharge(self):
         self.species = self.species_line.currentText()
         self.e = self.charge_dict[self.species]
-        self.charge_line.setText(str(self.e))
+        self.charge_line.setText("{:.2f}".format(self.e))
 
     def checkSpeciesCharge(self):
-        if int(self.charge_line.text()) < 0:
+        if float(self.charge_line.text()) < 0:
             bTools.errorBox("atomic number is always > 0")
 
     def calcBucket(self):
@@ -1429,9 +1446,6 @@ class BBat(CADMainWindow):
         self.Ek = (self.gammas_1 - 1.0) * self.Eo
         self.pc = math.sqrt(1.0 - self.Eo * self.Eo / self.Es / self.Es) * self.Es
         self.betas = math.sqrt(1.0 - 1.0 / self.gammas_1 / self.gammas_1)
-        # self.etas = (
-        #    1.0 / self.gamma_tr / (self.gamma_tr - 1.0) / self.gammas_1 / self.gammas_1
-        # )
         self.etas = (1 / (self.gamma_tr**2)) - (1 / (self.gammas_1**2))
         self.A = self.etas * ((self.h * bmath.c / self.Ro) ** 2) / self.Es
         self.B = self.e * self.Vrf_k / (2 * bmath.pi * self.h)
@@ -1539,16 +1553,16 @@ class BBat(CADMainWindow):
             )
         )
 
-        self.bline.setText(str(self.Bf))
-        self.frfline.setText(str(self.frf))
-        self.gline.setText(str(self.gammas))
-        self.betaline.setText(str(self.betas_1))
-        self.eline.setText(str(self.etas_1))
-        self.keline.setText(str(self.Ek))
-        self.bucLine.setText(str(self.BKTld))
-        self.nsLine.setText(str(self.BKTlt))
-        self.momline.setText(str(self.pc))
-        self.bunLine.setText(str(self.BUNld))
+        self.bline.setText("{:.3f}".format(self.Bf))
+        self.frfline.setText("{:.3f}".format(self.frf))
+        self.gline.setText("{:.3f}".format(self.gammas))
+        self.betaline.setText("{:.3f}".format(self.betas_1))
+        self.eline.setText("{:.3f}".format(self.etas_1))
+        self.keline.setText("{:.3f}".format(self.Ek))
+        self.bucLine.setText("{:.3f}".format(self.BKTld))
+        self.nsLine.setText("{:.3f}".format(self.BKTlt))
+        self.momline.setText("{:.3f}".format(self.pc))
+        self.bunLine.setText("{:.3f}".format(self.BUNld))
         self.rf_dict = {
             "RF Frequency (MHz)": self.frf,
             "B field (T)": self.Bf,
@@ -1622,9 +1636,6 @@ class BBat(CADMainWindow):
         self.Ek = (self.gammas_1 - 1.0) * self.Eo
         self.pc = math.sqrt(1.0 - self.Eo * self.Eo / self.Es / self.Es) * self.Es
         self.betas = math.sqrt(1.0 - 1.0 / self.gammas_1 / self.gammas_1)
-        # self.etas = (
-        #    1.0 / self.gamma_tr / self.gamma_tr - 1.0 / self.gammas_1 / self.gammas_1
-        # )
         self.etas = (1 / (self.gamma_tr**2)) - (1 / (self.gammas_1**2))
         self.A = self.etas * (self.h * bmath.c / self.Ro) ** 2.0 / self.Es
         self.B = self.e * self.Vrf_k / (2 * bmath.pi * self.h)
@@ -1731,7 +1742,6 @@ class BBat(CADMainWindow):
             self.phibun1 = bTools.proper_phi(self.phis_2, self.phibun1)
             self.phibun2 = bTools.proper_phi(self.phis_2, self.phibun2)
 
-        print(self.phis_2, self.phibun1, self.phibun2, self.A, self.B)
         bun_data = bTools.DrawBun(
             self.phis_2, self.phibun1, self.phibun2, self.A, self.B
         )
@@ -1786,39 +1796,39 @@ class BBat(CADMainWindow):
         self.pc_1 = self.pc / bmath.giga / bmath.A[self.species]
         self.pc = self.pc / bmath.giga / bmath.A[self.species]
 
-        self.bline.setText(str(self.Bf))
-        self.frfline.setText(str(self.frf))
-        self.gline.setText(str(self.gammas))
-        self.betaline.setText(str(self.betas_1))
-        self.eline.setText(str(self.etas_1))
-        self.keline.setText(str(self.Ek))
-        self.bucLine.setText(str(self.BKTld))
-        self.nsLine.setText(str(self.BKTlt))
-        self.momline.setText(str(self.pc))
-        self.bunLine.setText(str(self.BUNld))
+        self.bline.setText("{:.3f}".format(self.Bf))
+        self.frfline.setText("{:.3f}".format(self.frf))
+        self.gline.setText("{:.3f}".format(self.gammas))
+        self.betaline.setText("{:.3f}".format(self.betas_1))
+        self.eline.setText("{:.3f}".format(self.etas_1))
+        self.keline.setText("{:.3f}".format(self.Ek))
+        self.bucLine.setText("{:.3f}".format(self.BKTld))
+        self.nsLine.setText("{:.3f}".format(self.BKTlt))
+        self.momline.setText("{:.3f}".format(self.pc))
+        self.bunLine.setText("{:.3f}".format(self.BUNld))
 
     def bltCoor(self, x, y):
         self.phase_t1 = x / 360 / (self.frf_1 + 1.0e-20) * bmath.kilo
-        self.phase_value.setText(str(self.phase_t1))
+        self.phase_value.setText("{:.3f}".format(self.phase_t1))
         self.dE = y * 2.0 * bmath.pi * self.frf_1
-        self.demev_line.setText(str(self.dE))
+        self.demev_line.setText("{:.3f}".format(self.dE))
         self.dE_Es = self.dE / self.Es * bmath.kilo * bmath.mega
-        self.dees_line.setText(str(self.dE_Es))
+        self.dees_line.setText("{:.3f}".format(self.dE_Es))
         self.dP = self.dE / self.betas_1
-        self.dpmevc_val.setText(str(self.dP))
+        self.dpmevc_val.setText("{:.3f}".format(self.dP))
         self.dP_Ps = self.dE_Es / (self.betas_1 * self.betas_1)
-        self.dpps_val.setText(str(self.dP_Ps))
+        self.dpps_val.setText("{:.3f}".format(self.dP_Ps))
         self.gamma_tr = self.machineValues["gamma_tr"]
         self.dR_R = self.dP_Ps / self.gamma_tr**2
-        self.drr_val.setText(str(self.dR_R))
+        self.drr_val.setText("{:.3f}".format(self.dR_R))
         self.df_f = -self.dP_Ps * self.etas_1
-        self.dff_val.setText(str(self.df_f))
+        self.dff_val.setText("{:.3f}".format(self.df_f))
         self.x = x * (bmath.pi / 180)
         self.Tnu = bTools.Period_bun(self.phis, self.x, self.A_1, self.B_1)
         self.fnu_1 = 1.0 / (self.Tnu + 1.0e-20)
-        self.fnu_val.setText(str(self.fnu_1))
+        self.fnu_val.setText("{:.3f}".format(self.fnu_1))
         self.dfnu = -(self.fnu - self.fnu_1)
-        self.dfnu_val.setText(str(self.dfnu))
+        self.dfnu_val.setText("{:.3f}".format(self.dfnu))
         self.Vrf_i = self.A_1 * (y**2) * bmath.pi * self.h
         self.Vrf_i = (
             abs(self.Vrf_i)
@@ -1833,7 +1843,7 @@ class BBat(CADMainWindow):
                 )
             )
         )
-        self.vrfkv_value.setText(str(self.Vrf_i))
+        self.vrfkv_value.setText("{:.3f}".format(self.Vrf_i))
 
     def bun(self, x, y):
         self.phibun2 = x / bmath.radeg
@@ -1878,18 +1888,3 @@ class BBat(CADMainWindow):
                 )
                 self.BUN_x = bun_data[::2]
                 self.BUN_y = bun_data[1::2]
-
-
-class cBucket:
-    def __init__(self):
-        self.xcir = 0
-        self.xrho = 0
-        self.xtr = 0
-
-    def cMachine(self):
-        if self.xcir < 0:
-            print("Error: circumference is always > 0")
-        if self.xrho < 0:
-            print("Error: Bending radius is always > 0")
-        if self.xtr < 0:
-            print("Error: gamma_tr is always > 0")
