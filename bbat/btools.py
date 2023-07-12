@@ -724,7 +724,10 @@ class bTools:
         y1 = x - phi1
         y2 = phi2 - x
         y3 = math.cos(x) - math.cos(phi2) + (x - phi2) * math.sin(phis)
-        return math.sqrt(abs(y2 * y1 / y3))
+        if y3 == 0:
+            return 0
+        else:
+            return math.sqrt(abs(y2 * y1 / y3))
 
     def fbuncd(phi2, alpha, phis):
         """Derivitive of the bunch function
